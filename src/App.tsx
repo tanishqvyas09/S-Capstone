@@ -7,12 +7,16 @@ import TeacherQuiz from './pages/TeacherQuiz.tsx';
 import StudentAuth from './pages/StudentAuth.tsx';
 import StudentDashboard from './pages/StudentDashboard.tsx';
 import StudentQuiz from './pages/StudentQuiz.tsx';
+import WebhookTest from './pages/WebhookTest.tsx';
+import QuizAccess from './pages/QuizAccess.tsx';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/webhook-test" element={<WebhookTest />} />
+        <Route path="/quiz-access" element={<QuizAccess />} />
         <Route path="/teacher/auth" element={<TeacherAuth />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/teacher/quizzes/:quizId" element={<TeacherQuiz />} />

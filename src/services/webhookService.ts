@@ -13,59 +13,174 @@ interface WebhookResponse {
 }
 
 /**
- * Sends PDF file to webhook for AI-powered question generation
- * @param file - The PDF file to process
- * @param extractedText - Text extracted from the PDF (optional, can send file instead)
+ * Test the webhook to see what format it expects and returns
+ */
+export async function testWebhook(webhookUrl: string): Promise<any> {
+  console.log('[WebhookService] Testing webhook:', webhookUrl);
+  
+  try {
+    const testData = {
+      test: true,
+      message: "Testing webhook from Quiz App",
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('[WebhookService] Sending test data:', testData);
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(testData)
+    });
+
+    console.log('[WebhookService] Test response status:', response.status);
+    const data = await response.json();
+    console.log('[WebhookService] Test response data:', data);
+    return data;
+  } catch (error: any) {
+    console.error('[WebhookService] Test error:', error);
+    console.error('[WebhookService] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    throw new Error(`Webhook test failed: ${error.message}. This might be a CORS issue - check your n8n webhook settings.`);
+  }
+}
+
+/**
+ * Sends PDF file(s) to webhook for AI-powered question generation
+ * @param files - Single PDF file or array of PDF files (max 3)
  * @param webhookUrl - The webhook URL to send the data to
  * @returns Promise with generated questions or error
  */
 export async function sendPDFToWebhook(
-  file: File,
-  extractedText: string,
+  files: File | File[],
   webhookUrl: string
 ): Promise<WebhookResponse> {
-  console.log('[WebhookService] Sending PDF to webhook:', webhookUrl);
+  console.log('[WebhookService] Sending PDF(s) to webhook:', webhookUrl);
   
   try {
-    // Create FormData to send both file and text
+    // Convert to array if single file
+    const fileArray = Array.isArray(files) ? files : [files];
+    
+    // Limit to 3 files
+    if (fileArray.length > 3) {
+      throw new Error('Maximum 3 PDF files allowed');
+    }
+
+    // Create FormData to send the PDF file(s)
     const formData = new FormData();
-    formData.append('pdf', file);
-    formData.append('text', extractedText);
-    formData.append('filename', file.name);
+    
+    // Append all files
+    fileArray.forEach((file, index) => {
+      formData.append('file', file, file.name); // n8n will receive multiple files
+      console.log(`[WebhookService] Added file ${index + 1}:`, file.name, file.size, 'bytes');
+    });
+    
+    formData.append('fileCount', fileArray.length.toString());
     formData.append('timestamp', new Date().toISOString());
 
-    console.log('[WebhookService] FormData prepared:', {
-      filename: file.name,
-      fileSize: file.size,
-      textLength: extractedText.length
-    });
+    console.log('[WebhookService] FormData prepared with', fileArray.length, 'file(s)');
 
     // Send POST request to webhook
     const response = await fetch(webhookUrl, {
       method: 'POST',
+      mode: 'cors',
       body: formData,
-      headers: {
-        // Don't set Content-Type - browser will set it with boundary for FormData
-        'Accept': 'application/json',
-      },
+      // Don't set Content-Type header - browser will set it with boundary for FormData
     });
 
     console.log('[WebhookService] Response status:', response.status);
+    console.log('[WebhookService] Response headers:', Object.fromEntries(response.headers.entries()));
+
+    // Get response as text first to see what we got
+    const responseText = await response.text();
+    console.log('[WebhookService] Raw response text:', responseText);
+    console.log('[WebhookService] Response length:', responseText.length);
+
+    // ✅ SUCCESS: If we got status 200, the PDF reached n8n!
+    if (response.status === 200) {
+      console.log('✅ SUCCESS: PDF was received by n8n webhook (status 200)');
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[WebhookService] Webhook error response:', errorText);
-      throw new Error(`Webhook failed with status ${response.status}: ${errorText}`);
+      console.error('❌ FAILED: Webhook error response:', responseText);
+      throw new Error(`Webhook failed with status ${response.status}: ${responseText}`);
     }
 
-    const data: WebhookResponse = await response.json();
-    console.log('[WebhookService] Webhook response:', data);
-
-    if (!data.success) {
-      throw new Error(data.error || data.message || 'Webhook returned unsuccessful response');
+    // Check if response is empty
+    if (!responseText || responseText.trim().length === 0) {
+      console.warn('⚠️ PDF SENT SUCCESSFULLY but n8n returned EMPTY response');
+      console.warn('This means:');
+      console.warn('  ✅ Your PDF reached n8n');
+      console.warn('  ❌ n8n workflow is NOT sending response back');
+      throw new Error(
+        'PDF sent successfully to n8n, but no response received.\n\n' +
+        '🔧 Fix in n8n:\n' +
+        '1. Add "Respond to Webhook" node at the end of your workflow\n' +
+        '2. Set response format to JSON\n' +
+        '3. Return this structure:\n' +
+        '{\n' +
+        '  "success": true,\n' +
+        '  "questions": [\n' +
+        '    {\n' +
+        '      "question": "Your question text",\n' +
+        '      "options": ["A", "B", "C", "D"],\n' +
+        '      "answer": "A",\n' +
+        '      "explanation": "Why A is correct"\n' +
+        '    }\n' +
+        '  ]\n' +
+        '}'
+      );
     }
 
-    return data;
+    // Try to parse as JSON
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+      console.log('[WebhookService] Parsed JSON response:', data);
+    } catch (e) {
+      console.error('[WebhookService] Failed to parse JSON response:', responseText);
+      throw new Error(`Webhook returned invalid JSON. Raw response: ${responseText.substring(0, 200)}`);
+    }
+
+    // Handle n8n array response format: [{ output: { questions: [...] } }]
+    if (Array.isArray(data) && data.length > 0 && data[0].output?.questions) {
+      console.log('[WebhookService] Detected n8n array format, extracting questions...');
+      const questions = data[0].output.questions;
+      
+      // Transform n8n format to our app format
+      const transformedQuestions = questions.map((q: any) => ({
+        question: q.question,
+        options: [q.options.A, q.options.B, q.options.C, q.options.D].filter(opt => opt !== "N/A"),
+        answer: q.correct_answer === true ? "True" : 
+                q.correct_answer === false ? "False" : 
+                q.options[q.correct_answer] || q.correct_answer,
+        explanation: q.explanation
+      }));
+
+      console.log('[WebhookService] Transformed questions:', transformedQuestions);
+      
+      return {
+        success: true,
+        questions: transformedQuestions
+      };
+    }
+
+    // Handle direct format: { success: true, questions: [...] }
+    if (data.success && data.questions) {
+      console.log('[WebhookService] Direct format detected');
+      return data;
+    }
+
+    // If we got here, format is unexpected
+    console.error('[WebhookService] Unexpected response format:', data);
+    throw new Error('Webhook returned data in unexpected format');
   } catch (error) {
     console.error('[WebhookService] Error sending to webhook:', error);
     throw error;
@@ -83,21 +198,31 @@ export async function sendTextToWebhook(
   console.log('[WebhookService] Sending text to webhook:', webhookUrl);
   
   try {
+    const payload = {
+      text: extractedText,
+      filename: filename,
+      timestamp: new Date().toISOString(),
+      requestType: 'generate_quiz'
+    };
+
+    console.log('[WebhookService] Payload:', {
+      textLength: extractedText.length,
+      filename,
+      timestamp: payload.timestamp
+    });
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        text: extractedText,
-        filename: filename,
-        timestamp: new Date().toISOString(),
-        requestType: 'generate_quiz'
-      }),
+      body: JSON.stringify(payload),
     });
 
     console.log('[WebhookService] Response status:', response.status);
+    console.log('[WebhookService] Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -105,8 +230,20 @@ export async function sendTextToWebhook(
       throw new Error(`Webhook failed with status ${response.status}: ${errorText}`);
     }
 
-    const data: WebhookResponse = await response.json();
-    console.log('[WebhookService] Webhook response:', data);
+    // Get response as text first
+    const responseText = await response.text();
+    console.log('[WebhookService] Raw response text:', responseText);
+
+    // Try to parse as JSON
+    let data: WebhookResponse;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[WebhookService] Failed to parse JSON response:', responseText);
+      throw new Error(`Webhook returned invalid JSON. Raw response: ${responseText.substring(0, 200)}`);
+    }
+
+    console.log('[WebhookService] Parsed response:', data);
 
     if (!data.success) {
       throw new Error(data.error || data.message || 'Webhook returned unsuccessful response');
@@ -123,13 +260,9 @@ export async function sendTextToWebhook(
  * Get webhook URL from environment or configuration
  */
 export function getWebhookUrl(): string {
-  const webhookUrl = import.meta.env.VITE_WEBHOOK_URL;
+  const webhookUrl = import.meta.env.VITE_WEBHOOK_URL || 'https://glowing-g79w8.crab.containers.automata.host/webhook/shabbar2';
   
-  if (!webhookUrl) {
-    console.warn('[WebhookService] VITE_WEBHOOK_URL not set in environment, using fallback');
-    // You can set a default webhook URL here or throw an error
-    throw new Error('Webhook URL not configured. Please set VITE_WEBHOOK_URL in .env file');
-  }
+  console.log('[WebhookService] Using webhook URL:', webhookUrl);
   
   return webhookUrl;
 }

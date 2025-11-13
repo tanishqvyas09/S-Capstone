@@ -65,9 +65,7 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card" style={{ maxWidth: 400, margin: 'auto' }}>
-      <h2>{isSignup ? 'Sign Up' : 'Sign In'} as {role}</h2>
-      
+    <form onSubmit={handleSubmit} style={{ width: '100%' }}>
       {error && (
         <div style={{ 
           backgroundColor: '#fee', 
@@ -114,14 +112,36 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
             <>
               <input 
                 className="form-input" 
-                placeholder="Subject" 
+                placeholder="Full Name *" 
+                onChange={e => setExtra({ ...extra, full_name: e.target.value })} 
+                disabled={loading}
+                required
+              />
+              <input 
+                className="form-input" 
+                placeholder="Subject *" 
                 onChange={e => setExtra({ ...extra, subject: e.target.value })} 
+                disabled={loading}
+                required
+              />
+              <input 
+                className="form-input" 
+                placeholder="Grade Level *" 
+                onChange={e => setExtra({ ...extra, grade_level: e.target.value })} 
+                disabled={loading}
+                required
+              />
+              <input 
+                className="form-input" 
+                placeholder="Phone Number" 
+                type="tel"
+                onChange={e => setExtra({ ...extra, phone: e.target.value })} 
                 disabled={loading}
               />
               <input 
                 className="form-input" 
-                placeholder="Grade Level" 
-                onChange={e => setExtra({ ...extra, grade_level: e.target.value })} 
+                placeholder="School/Institution" 
+                onChange={e => setExtra({ ...extra, institution: e.target.value })} 
                 disabled={loading}
               />
             </>
@@ -130,14 +150,35 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
             <>
               <input 
                 className="form-input" 
-                placeholder="Full Name" 
+                placeholder="Full Name *" 
                 onChange={e => setExtra({ ...extra, full_name: e.target.value })} 
+                disabled={loading}
+                required
+              />
+              <input 
+                className="form-input" 
+                placeholder="Class/Grade *" 
+                onChange={e => setExtra({ ...extra, class_year: e.target.value })} 
+                disabled={loading}
+                required
+              />
+              <input 
+                className="form-input" 
+                placeholder="Roll Number" 
+                onChange={e => setExtra({ ...extra, roll_number: e.target.value })} 
                 disabled={loading}
               />
               <input 
                 className="form-input" 
-                placeholder="Class/Year" 
-                onChange={e => setExtra({ ...extra, class_year: e.target.value })} 
+                placeholder="Phone Number" 
+                type="tel"
+                onChange={e => setExtra({ ...extra, phone: e.target.value })} 
+                disabled={loading}
+              />
+              <input 
+                className="form-input" 
+                placeholder="School/Institution" 
+                onChange={e => setExtra({ ...extra, institution: e.target.value })} 
                 disabled={loading}
               />
             </>
@@ -147,7 +188,20 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
       <button 
         type="submit" 
         className="btn-primary" 
-        style={{ width: '100%', marginTop: 10, opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }} 
+        style={{ 
+          width: '100%', 
+          marginTop: 10, 
+          opacity: loading ? 0.6 : 1, 
+          cursor: loading ? 'not-allowed' : 'pointer',
+          padding: '0.75rem',
+          fontSize: '1rem',
+          fontWeight: '600',
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          color: 'white',
+          transition: 'all 0.3s'
+        }} 
         disabled={loading}
       >
         {loading ? (isSignup ? 'Creating Account...' : 'Logging In...') : (isSignup ? 'Create Account' : 'Login')}

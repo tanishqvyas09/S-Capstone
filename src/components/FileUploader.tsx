@@ -1,73 +1,51 @@
 import { ChangeEvent, useState, useRef } from 'react';
 
 interface FileUploaderProps {
-  onUpload: (file: File, extractedText: string) => Promise<void>;
+  onUpload: (files: File[]) => Promise<void>;
   loading?: boolean;
 }
 
 const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type === 'application/pdf') {
-        setFile(selectedFile);
-      } else {
-        alert('Please select a valid PDF file');
-        setFile(null);
-      }
-    }
-  };
-
-  const extractTextFromPDF = async (pdfFile: File): Promise<string> => {
-    try {
-      console.log('[FileUploader] Extracting text from PDF:', pdfFile.name);
-      const pdfjs = await import('pdfjs-dist');
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
-
-      const arrayBuffer = await pdfFile.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
       
-      let extractedText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        extractedText += pageText + '\n';
+      // Check if all files are PDFs
+      const invalidFiles = selectedFiles.filter(f => f.type !== 'application/pdf');
+      if (invalidFiles.length > 0) {
+        alert('Please select only PDF files');
+        return;
       }
 
-      console.log('[FileUploader] Text extracted successfully, length:', extractedText.length);
-      return extractedText;
-    } catch (error) {
-      console.error('[FileUploader] Error extracting text from PDF:', error);
-      throw error;
+      // Limit to 3 files
+      if (selectedFiles.length > 3) {
+        alert('Maximum 3 PDF files allowed');
+        return;
+      }
+
+      setFiles(selectedFiles);
     }
   };
 
   const handleClick = async () => {
-    if (!file) {
-      alert('Please select a file first');
+    if (files.length === 0) {
+      alert('Please select at least one PDF file');
       return;
     }
 
     try {
-      setIsExtracting(true);
-      const extractedText = await extractTextFromPDF(file);
-      await onUpload(file, extractedText);
-      setFile(null);
+      await onUpload(files);
+      
+      setFiles([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (error) {
       console.error('[FileUploader] Upload error:', error);
-      alert('Error processing PDF. Please try again.');
-    } finally {
-      setIsExtracting(false);
+      alert('Error uploading PDF(s). Please try again.');
     }
   };
 
@@ -80,13 +58,14 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
       backgroundColor: '#f8f9fa',
       marginBottom: '2rem'
     }}>
-      <h3>📄 Upload PDF to Generate Quiz</h3>
-      <p style={{ color: '#666', marginBottom: '1rem' }}>Select a PDF file from your notes to auto-generate quiz questions</p>
+      <h3>📄 Upload PDFs to Generate Quiz</h3>
+      <p style={{ color: '#666', marginBottom: '1rem' }}>Select 1-3 PDF files from your notes to auto-generate quiz questions</p>
 
       <input
         ref={fileInputRef}
         type="file"
         accept=".pdf"
+        multiple
         onChange={handleChange}
         style={{ display: 'none' }}
         id="pdf-input"
@@ -96,44 +75,62 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={loading || isExtracting}
+          disabled={loading}
           style={{
             backgroundColor: '#007bff',
             color: 'white',
             padding: '0.75rem 1.5rem',
             border: 'none',
             borderRadius: '4px',
-            cursor: loading || isExtracting ? 'not-allowed' : 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             fontSize: '1rem',
             marginRight: '1rem',
-            opacity: loading || isExtracting ? 0.6 : 1
+            opacity: loading ? 0.6 : 1
           }}
         >
-          {loading || isExtracting ? '⏳ Processing...' : '📁 Choose PDF'}
+          {loading ? '⏳ Processing...' : '📁 Choose PDFs (1-3)'}
         </button>
       </label>
 
-      {file && (
-        <span style={{ marginRight: '1rem', color: '#28a745', fontWeight: 'bold' }}>
-          ✓ {file.name}
-        </span>
+      {files.length > 0 && (
+        <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+          {files.map((f, i) => (
+            <div key={i} style={{ 
+              display: 'inline-block',
+              marginRight: '0.5rem', 
+              marginBottom: '0.5rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#d4edda',
+              borderRadius: '20px',
+              color: '#155724',
+              fontWeight: 'bold',
+              fontSize: '0.9rem'
+            }}>
+              ✓ {f.name}
+            </div>
+          ))}
+          <div style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
+            {files.length} file{files.length > 1 ? 's' : ''} selected
+          </div>
+        </div>
       )}
 
       <button
         onClick={handleClick}
-        disabled={!file || loading || isExtracting}
+        disabled={files.length === 0 || loading}
         style={{
           backgroundColor: '#28a745',
           color: 'white',
-          padding: '0.75rem 1.5rem',
+          padding: '0.75rem 2rem',
           border: 'none',
           borderRadius: '4px',
-          cursor: !file || loading || isExtracting ? 'not-allowed' : 'pointer',
+          cursor: (files.length === 0 || loading) ? 'not-allowed' : 'pointer',
           fontSize: '1rem',
-          opacity: !file || loading || isExtracting ? 0.6 : 1
+          fontWeight: 'bold',
+          opacity: (files.length === 0 || loading) ? 0.6 : 1
         }}
       >
-        {isExtracting ? '⏳ Extracting PDF...' : loading ? '⏳ Generating Quiz...' : '🚀 Generate Quiz'}
+        {loading ? '🤖 Generating Quiz...' : '🚀 Generate Quiz'}
       </button>
     </div>
   );

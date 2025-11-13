@@ -1,6 +1,18 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../supabaseClient';
-import type { User, Role } from '../types/index';
+
+interface User {
+  id: string;
+  email: string;
+  role: 'teacher' | 'student';
+  full_name?: string;
+  subject?: string;
+  grade_level?: string;
+  class_year?: string;
+  roll_number?: string;
+  phone?: string;
+  institution?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -18,80 +30,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     console.log('[AuthProvider] Initializing auth state...');
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('[AuthProvider] Auth state changed:', { event: _event, userId: session?.user?.id });
-      if (session?.user) {
-        try {
-          const { data } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          console.log('[AuthProvider] User data fetched:', data);
-          setUser(data);
-        } catch (error) {
-          console.error('[AuthProvider] Failed to fetch user data:', error);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
+    // No auth state listener needed for simple auth
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     console.log('[AuthProvider] Login attempt for:', email);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error('[AuthProvider] Login auth error:', error.message, error);
-      throw new Error(error.message || 'Login failed');
-    }
-    console.log('[AuthProvider] Auth login successful for user:', data.user?.id);
     
     try {
-      // First, check if user exists in users table
-      const { data: userData, error: fetchError } = await supabase
-        .from('users')
+      // Try to find user in teachers table first
+      const { data: teacherData, error: teacherError } = await supabase
+        .from('teachers')
         .select('*')
-        .eq('id', data.user!.id)
-        .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle();
       
-      if (fetchError) {
-        console.error('[AuthProvider] Failed to fetch user data:', fetchError);
-        throw new Error('Failed to fetch user profile: ' + fetchError.message);
+      if (teacherData) {
+        console.log('[AuthProvider] Teacher login successful:', teacherData);
+        setUser({ ...teacherData, role: 'teacher' });
+        return;
       }
       
-      // If user doesn't exist in users table, create it
-      if (!userData) {
-        console.warn('[AuthProvider] User not found in users table, creating profile...');
-        const { data: newUserData, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user!.id,
-            email: data.user!.email!,
-            role: 'student', // Default role, can be changed later
-          })
-          .select()
-          .single();
-        
-        if (insertError) {
-          console.error('[AuthProvider] Failed to create user profile:', insertError);
-          throw new Error('Failed to create user profile: ' + insertError.message);
-        }
-        
-        console.log('[AuthProvider] User profile created:', newUserData);
-        setUser(newUserData);
-      } else {
-        console.log('[AuthProvider] Login successful, user data:', userData);
-        setUser(userData);
+      // Try students table
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle();
+      
+      if (studentData) {
+        console.log('[AuthProvider] Student login successful:', studentData);
+        setUser({ ...studentData, role: 'student' });
+        return;
       }
+      
+      // If no match found
+      throw new Error('Invalid email or password');
+      
     } catch (error: any) {
-      console.error('[AuthProvider] Failed to fetch/create user after login:', error);
+      console.error('[AuthProvider] Login failed:', error);
       throw error;
     }
   };
@@ -100,61 +79,58 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     console.log('[AuthProvider] Signup attempt for:', { email, role, extraData: data });
     
     try {
-      // Step 1: Create auth user
-      const { data: authData, error: signupError } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: {
-            role: role,
-            ...data
-          }
-        }
-      });
+      const tableName = role === 'teacher' ? 'teachers' : 'students';
       
-      if (signupError) {
-        console.error('[AuthProvider] Signup auth error:', signupError.message);
-        throw new Error(signupError.message || 'Signup failed');
+      // Check if email already exists
+      const { data: existingUser } = await supabase
+        .from(tableName)
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (existingUser) {
+        throw new Error('Email already exists. Please login instead.');
       }
       
-      if (!authData.user) {
-        throw new Error('Signup failed: no user returned from auth');
-      }
-
-      console.log('[AuthProvider] Auth signup successful, user ID:', authData.user.id);
-
-      // Step 2: Create user profile in users table
+      // Create user profile with password
       const userProfile = {
-        id: authData.user.id,
+        id: crypto.randomUUID(), // Generate a unique ID
         email,
-        role,
-        ...data
+        password, // Store password directly
+        full_name: data.full_name || '',
+        phone: data.phone || '',
+        institution: data.institution || '',
+        ...(role === 'teacher' ? {
+          subject: data.subject || '',
+          grade_level: data.grade_level || ''
+        } : {
+          class_year: data.class_year || '',
+          roll_number: data.roll_number || ''
+        })
       };
       
-      console.log('[AuthProvider] Creating user profile:', userProfile);
+      console.log('[AuthProvider] Creating profile in', tableName, ':', userProfile);
       
       const { error: insertError } = await supabase
-        .from('users')
-        .upsert(userProfile, { onConflict: 'id' }); // Use upsert to avoid duplicate errors
+        .from(tableName)
+        .insert(userProfile);
       
       if (insertError) {
-        console.error('[AuthProvider] User insert error:', insertError);
+        console.error('[AuthProvider] Profile insert error:', insertError);
         
-        // Provide user-friendly error messages
-        if (insertError.code === '42501') {
-          throw new Error('Permission denied. Please run the SQL setup from SUPABASE_SQL_SETUP.md');
+        if (insertError.code === '42P01') {
+          throw new Error(`Table "${tableName}" not found. Please run DATABASE_SETUP.sql in Supabase SQL Editor.`);
         } else if (insertError.code === '23505') {
-          // If duplicate, try to fetch existing user
-          console.log('[AuthProvider] User already exists, fetching...');
-        } else {
-          throw new Error('Failed to create profile: ' + insertError.message);
+          throw new Error('An account with this email already exists. Please login instead.');
         }
+        
+        throw new Error('Failed to create profile: ' + insertError.message);
       }
 
-      console.log('[AuthProvider] User profile created successfully');
+      console.log('[AuthProvider] Profile created successfully');
       
-      // Step 3: Set user state
-      const newUser = { id: authData.user.id, email, role, ...data };
+      // Set user state
+      const newUser = { ...userProfile, role };
       setUser(newUser);
       console.log('[AuthProvider] Signup complete!');
     } catch (error: any) {
@@ -165,7 +141,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     console.log('[AuthProvider] Logging out...');
-    await supabase.auth.signOut();
     setUser(null);
   };
 

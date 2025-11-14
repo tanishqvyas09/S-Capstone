@@ -289,7 +289,7 @@ const LandingPage = () => {
             <div style={styles.logoIcon}>
               <BookOpen color="white" size={24} />
             </div>
-            <span style={styles.logoText}>Engage Ai</span>
+            <span style={styles.logoText}>EngageAI</span>
           </div>
           <ul style={styles.navLinks}>
             <li>
@@ -308,7 +308,7 @@ const LandingPage = () => {
           <div style={styles.badge}>
             🚀 Transform Your Learning Experience
           </div>
-          <h1 style={styles.title}>Engage AI</h1>
+          <h1 style={styles.title}>EngageAI</h1>
           <p style={styles.subtitle}>
             Create engaging quizzes from your notes and empower students with interactive learning experiences
           </p>
@@ -435,7 +435,7 @@ const LandingPage = () => {
 
         {/* Benefits Section */}
         <div style={styles.benefitsSection}>
-          <h2 style={styles.benefitsTitle}>Why Choose QuizMaster?</h2>
+          <h2 style={styles.benefitsTitle}>Why Choose EngageAI?</h2>
           <div style={styles.benefitsGrid}>
             {benefits.map((benefit, idx) => (
               <div 
@@ -464,10 +464,10 @@ const LandingPage = () => {
           <div style={styles.footerLogoIcon}>
             <BookOpen color="white" size={20} />
           </div>
-          <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>Engage AI</span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>EngageAI</span>
         </div>
         <p style={styles.footerText}>Transforming education through interactive learning</p>
-        <p style={styles.footerCopyright}>© 2024 QuizMaster. All rights reserved.</p>
+        <p style={styles.footerCopyright}>© 2024 EngageAI. All rights reserved.</p>
       </footer>
     </div>
   );

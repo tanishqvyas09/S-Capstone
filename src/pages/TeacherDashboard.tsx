@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 import FileUploader from '../components/FileUploader';
 import QuizEditor from '../components/QuizEditor';
 import { generateQuiz } from '../services/quizGenerator';
-import { sendPDFToWebhook, getWebhookUrl } from '../services/webhookService';
+import { sendFilesToWebhook, getWebhookUrl } from '../services/webhookService';
+import { useToast } from '../components/Toast';
 import type { Quiz, Question } from '../types/index';
 import QRCode from 'qrcode';
 
@@ -21,10 +22,17 @@ interface EditingQuiz extends GeneratedQuiz {
 
 const TeacherDashboard = () => {
   const { user, loading } = useContext(AuthContext)!;
+  const { showToast } = useToast();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [fetching, setFetching] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
+  const [showGenerationStreaming, setShowGenerationStreaming] = useState(false);
+  const [streamLog, setStreamLog] = useState<string[]>([]);
+  const generationTimerRef = useRef<number | null>(null);
+  const [questionCount, setQuestionCount] = useState<number>(5);
+  const [difficulty, setDifficulty] = useState<string>('medium');
+  const [questionType, setQuestionType] = useState<string>('mcq');
   const [editingQuiz, setEditingQuiz] = useState<EditingQuiz | null>(null);
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
@@ -58,48 +66,125 @@ const TeacherDashboard = () => {
     }
   };
 
-  const handlePDFUpload = async (files: File[]) => {
+  const handleFileUpload = async (files: File[]) => {
     try {
       setGeneratingQuiz(true);
-      console.log('[TeacherDashboard] Uploading PDFs:', files.map(f => f.name));
+      try { showToast('Generating quiz — this may take a moment...', 'info', 4000); } catch {};
+      // start a delayed streaming indicator if generation takes longer than 800ms
+      generationTimerRef.current = window.setTimeout(() => {
+        setShowGenerationStreaming(true);
+      }, 800);
+      console.log('[TeacherDashboard] Uploading files:', files.map(f => f.name));
 
       // Get webhook URL
       const webhookUrl = getWebhookUrl();
-      
+
       console.log('[TeacherDashboard] Using webhook for AI-powered generation');
       try {
-        const webhookResponse = await sendPDFToWebhook(files, webhookUrl);
-        
+        // Map our UI selection to the webhook expected type names (n8n uses these strings)
+        const webhookQuestionType = questionType === 'mcq' ? 'mcq' : questionType === 'tf' ? 'true_false' : 'fill_in_blank';
+
+        // clear previous stream log
+        setStreamLog([]);
+        const webhookResponse = await sendFilesToWebhook(files, webhookUrl, { questionCount, difficulty, questionType: webhookQuestionType, onChunk: (chunk: string) => {
+          // Append chunk to log, cap at 80 entries to avoid memory bloat
+          setStreamLog(prev => {
+            const next = [...prev, chunk.trim()];
+            if (next.length > 80) return next.slice(next.length - 80);
+            return next;
+          });
+        } });
+
         if (webhookResponse.success && webhookResponse.questions) {
+          // Normalize incoming questions: ensure type/options exist and strip options for non-mcq types
+          const normalizedQuestions = (webhookResponse.questions || []).map((q: any) => {
+            // Determine returned type (normalize variants), fall back to requested type
+            const returned = (q.type || '').toString().toLowerCase();
+            let type: 'mcq' | 'tf' | 'fill' = 'mcq';
+
+            if (returned.includes('fill') || returned.includes('blank')) type = 'fill';
+            else if (returned.includes('true') || returned === 'tf' || returned.includes('false')) type = 'tf';
+            else if (returned.includes('mcq')) type = 'mcq';
+            else {
+              // fallback to the teacher's requested type
+              if (webhookQuestionType === 'mcq') type = 'mcq';
+              else if (webhookQuestionType === 'true_false') type = 'tf';
+              else type = 'fill';
+            }
+
+            // For True/False questions: ignore any incoming options and force True/False
+            if (type === 'tf') {
+              const answerRaw = (q.answer || q.answer === false || q.answer === true) ? q.answer : q.correct_answer || '';
+              const answer = typeof answerRaw === 'boolean' ? (answerRaw ? 'True' : 'False') : String(answerRaw || '').replace(/^(true|false)$/i, (m) => m[0].toUpperCase() + m.slice(1).toLowerCase());
+              return {
+                question: q.question || '',
+                options: ['True', 'False'],
+                answer: answer || '',
+                explanation: q.explanation || '',
+                type: 'tf'
+              };
+            }
+
+            // For MCQ: keep options (ensure array) and answer
+            if (type === 'mcq') {
+              // Ensure options is an array of strings
+              const opts = Array.isArray(q.options) ? q.options : (q.options && typeof q.options === 'object' ? Object.values(q.options) : []);
+              const optionsArr = opts.length > 0 ? opts : ['', '', '', ''];
+              return {
+                question: q.question || '',
+                options: optionsArr,
+                answer: q.answer || '',
+                explanation: q.explanation || '',
+                type: 'mcq'
+              };
+            }
+
+            // fill_in_blank: strip any options returned by webhook
+            return {
+              question: q.question || '',
+              options: [],
+              answer: q.answer || '',
+              explanation: q.explanation || '',
+              type: 'fill'
+            };
+          });
+
           const quiz: GeneratedQuiz = {
             title: files.length > 1 
-              ? `Quiz from ${files.length} PDFs` 
-              : files[0].name.replace('.pdf', ''),
+              ? `Quiz from ${files.length} files` 
+              : files[0].name.replace(/\.[^/.]+$/, ''),
             description: files.length > 1
               ? `Quiz generated from: ${files.map(f => f.name).join(', ')}`
               : `Quiz generated from ${files[0].name}`,
-            questions: webhookResponse.questions
+            questions: normalizedQuestions
           };
           console.log('[TeacherDashboard] Quiz generated via webhook:', quiz);
           setGeneratedQuiz(quiz);
+          try { showToast('✅ Quiz generated successfully!', 'success'); } catch {};
           return;
         }
       } catch (webhookError) {
         console.error('[TeacherDashboard] Webhook failed:', webhookError);
-        alert('Webhook failed: ' + (webhookError instanceof Error ? webhookError.message : 'Unknown error'));
+        try { showToast('Webhook failed: ' + (webhookError instanceof Error ? webhookError.message : 'Unknown error'), 'error', 6000); } catch {};
         throw webhookError;
       }
     } catch (error) {
       console.error('[TeacherDashboard] Error generating quiz:', error);
-      alert('Error generating quiz: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      try { showToast('Error generating quiz: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error', 6000); } catch {};
     } finally {
       setGeneratingQuiz(false);
+      // clear streaming indicator and timer
+      if (generationTimerRef.current) {
+        clearTimeout(generationTimerRef.current);
+        generationTimerRef.current = null;
+      }
+      setShowGenerationStreaming(false);
     }
   };
 
   const handleSaveQuiz = async (editedQuiz: any) => {
     if (!user) {
-      alert('Not authenticated');
+      try { showToast('Not authenticated', 'error'); } catch {};
       return;
     }
 
@@ -123,7 +208,7 @@ const TeacherDashboard = () => {
         if (error) throw error;
 
         console.log('[TeacherDashboard] Quiz updated successfully:', data);
-        alert('✅ Quiz updated successfully!');
+        try { showToast('✅ Quiz updated successfully!', 'success'); } catch {};
         setEditingQuiz(null);
       } else {
         console.log('[TeacherDashboard] Creating new quiz:', editedQuiz);
@@ -148,7 +233,7 @@ const TeacherDashboard = () => {
         if (error) throw error;
 
         console.log('[TeacherDashboard] Quiz saved successfully:', data);
-        alert('✅ Quiz saved successfully!');
+        try { showToast('✅ Quiz saved successfully!', 'success'); } catch {};
         setGeneratedQuiz(null);
         
         // Automatically show share modal for new quiz
@@ -161,7 +246,7 @@ const TeacherDashboard = () => {
       await fetchQuizzes();
     } catch (error) {
       console.error('[TeacherDashboard] Error saving quiz:', error);
-      alert('Error saving quiz: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      try { showToast('Error saving quiz: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error', 6000); } catch {};
       throw error;
     } finally {
       setSavingQuiz(false);
@@ -206,11 +291,11 @@ const TeacherDashboard = () => {
       if (quizError) throw quizError;
 
       console.log('[TeacherDashboard] Quiz deleted successfully');
-      alert('✅ Quiz deleted successfully!');
+      try { showToast('✅ Quiz deleted successfully!', 'success'); } catch {};
       await fetchQuizzes();
     } catch (error) {
       console.error('[TeacherDashboard] Error deleting quiz:', error);
-      alert('Error deleting quiz: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      try { showToast('Error deleting quiz: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error', 6000); } catch {};
     } finally {
       setDeletingQuizId(null);
     }
@@ -245,7 +330,7 @@ const TeacherDashboard = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('✅ Copied to clipboard!');
+    try { showToast('✅ Copied to clipboard!', 'success'); } catch {};
   };
 
   if (loading) {
@@ -258,7 +343,7 @@ const TeacherDashboard = () => {
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto' }}>
-      <h1>👨‍🏫 Teacher Dashboard</h1>
+      <h1>EngageAI — 👨‍🏫 Teacher Dashboard</h1>
       <p>Welcome, <strong>{user.email}</strong> ({user.role})</p>
 
       <div style={{ marginBottom: '2rem' }}>
@@ -285,10 +370,60 @@ const TeacherDashboard = () => {
         </Link>
       </div>
 
+      {/* Generation Options (hidden when editing or reviewing generated quiz) */}
+      {!generatedQuiz && !editingQuiz && (
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Number of Questions</label>
+          <input type="number" min={1} max={50} value={questionCount} onChange={e => setQuestionCount(Number(e.target.value) || 1)} style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #ddd', width: 140 }} />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Difficulty</label>
+          <select value={difficulty} onChange={e => setDifficulty(e.target.value)} style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #ddd' }}>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Question Type</label>
+          <select value={questionType} onChange={e => setQuestionType(e.target.value)} style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #ddd' }}>
+            <option value="mcq">MCQ</option>
+            <option value="tf">True / False</option>
+            <option value="fill">Fill Ups</option>
+          </select>
+        </div>
+        </div>
+      )}
+
+      {/* Streaming indicator shown only when generation is taking time */}
+      {generatingQuiz && showGenerationStreaming && (
+        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="streaming-spinner" aria-hidden />
+          <div style={{ color: '#64748b', fontWeight: 600 }}>Generating quiz — this may take a moment...</div>
+        </div>
+      )}
+
+      {/* Live progress log from webhook streaming chunks */}
+      {streamLog.length > 0 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontWeight: 700, marginBottom: 6, color: '#334155' }}>Generation progress</div>
+          <div style={{ background: '#0f172a', color: '#e6eef8', padding: '0.75rem', borderRadius: 8, maxHeight: 240, overflow: 'auto', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+            {streamLog.map((chunk, idx) => (
+              <div key={idx} style={{ marginBottom: 6, whiteSpace: 'pre-wrap' }}>
+                {chunk}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* PDF Upload & Quiz Generation */}
       {!generatedQuiz && !editingQuiz ? (
         <>
-          <FileUploader onUpload={handlePDFUpload} loading={generatingQuiz} />
+          <FileUploader onUpload={handleFileUpload} loading={generatingQuiz} />
         </>
       ) : (
         <QuizEditor
@@ -304,7 +439,7 @@ const TeacherDashboard = () => {
         <h2>📚 Your Quizzes ({quizzes.length})</h2>
         {quizzes.length === 0 ? (
           <p style={{ color: '#666', fontSize: '1.1rem' }}>
-            No quizzes yet. Upload a PDF above to create your first quiz! 📄
+            No quizzes yet. Upload a file above to create your first quiz! 📁
           </p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>

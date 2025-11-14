@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { testWebhook, sendTextToWebhook, sendPDFToWebhook, getWebhookUrl } from '../services/webhookService';
+import { testWebhook, sendTextToWebhook, sendFilesToWebhook, getWebhookUrl } from '../services/webhookService';
 
 const WebhookTest = () => {
   const [loading, setLoading] = useState(false);
@@ -9,29 +9,35 @@ const WebhookTest = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const webhookUrl = getWebhookUrl();
 
+  const allowedExt = ['.pdf', '.pptx', '.docx'];
+  const allowedMimePrefix = 'audio/';
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
-      const pdfFiles = files.filter(f => f.type === 'application/pdf');
-      
-      if (pdfFiles.length !== files.length) {
-        setError('Please select only PDF files');
+
+      const invalid = files.filter(f => {
+        const name = f.name.toLowerCase();
+        const extOk = allowedExt.some(ext => name.endsWith(ext));
+        const mimeOk = f.type.startsWith(allowedMimePrefix) || f.type === 'application/pdf';
+        return !(extOk || mimeOk);
+      });
+
+      if (invalid.length > 0) {
+        setError('Please select only PDF, PPTX, DOCX or audio files');
         return;
       }
 
-      if (pdfFiles.length > 3) {
-        setError('Maximum 3 PDF files allowed');
-        return;
-      }
+      // no client-side maximum file count enforced anymore
 
-      setSelectedFiles(pdfFiles);
+      setSelectedFiles(files);
       setError('');
     }
   };
 
-  const handleTestWithPDF = async () => {
+  const handleTestWithFiles = async () => {
     if (selectedFiles.length === 0) {
-      setError('Please select at least one PDF file');
+      setError('Please select at least one file');
       return;
     }
 
@@ -40,12 +46,12 @@ const WebhookTest = () => {
     setResult(null);
 
     try {
-      const response = await sendPDFToWebhook(selectedFiles, webhookUrl);
+      const response = await sendFilesToWebhook(selectedFiles, webhookUrl);
       setResult(response);
-      console.log('PDF upload response:', response);
+      console.log('File upload response:', response);
     } catch (err: any) {
       setError(err.message);
-      console.error('PDF upload error:', err);
+      console.error('File upload error:', err);
     } finally {
       setLoading(false);
     }
@@ -134,7 +140,7 @@ const WebhookTest = () => {
         </button>
       </div>
 
-      {/* PDF Upload Section */}
+      {/* File Upload Section */}
       <div style={{
         marginTop: '2rem',
         padding: '1.5rem',
@@ -142,25 +148,25 @@ const WebhookTest = () => {
         borderRadius: '8px',
         border: '2px dashed #0ea5e9'
       }}>
-        <h3>📄 Test with PDF File</h3>
+        <h3>📁 Test with File</h3>
         <p style={{ color: '#666', marginBottom: '1rem' }}>
-          Upload a PDF to test the actual webhook flow
+          Upload a file (PDF, PPTX, DOCX, or audio) to test the webhook flow
         </p>
-        
+
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf"
+          accept=".pdf,.pptx,.docx,audio/*"
           onChange={handleFileSelect}
           style={{ display: 'none' }}
-          id="pdf-test-input"
+          id="file-test-input"
         />
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept=".pdf,.pptx,.docx,audio/*"
             multiple
             onChange={handleFileSelect}
             style={{ display: 'none' }}
@@ -178,7 +184,7 @@ const WebhookTest = () => {
               opacity: loading ? 0.6 : 1
             }}
           >
-            {selectedFiles.length > 0 ? 'Change PDFs' : 'Select PDFs (1-3)'}
+            {selectedFiles.length > 0 ? 'Change Files' : 'Select Files'}
           </button>
 
           {selectedFiles.length > 0 && (
@@ -191,7 +197,7 @@ const WebhookTest = () => {
                 ))}
               </div>
               <button
-                onClick={handleTestWithPDF}
+                onClick={handleTestWithFiles}
                 disabled={loading}
                 style={{
                   padding: '0.75rem 1.5rem',

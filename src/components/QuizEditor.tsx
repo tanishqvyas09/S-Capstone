@@ -5,6 +5,7 @@ interface EditorQuestion {
   question: string;
   options: string[];
   answer: string;
+  type?: 'mcq' | 'tf' | 'fill';
   explanation?: string;
 }
 
@@ -57,7 +58,8 @@ const QuizEditor = ({ quiz, onSave, onCancel, loading = false }: QuizEditorProps
           question: '',
           options: ['', '', '', ''],
           answer: '',
-          explanation: ''
+          explanation: '',
+          type: 'mcq'
         }
       ]
     });
@@ -82,17 +84,41 @@ const QuizEditor = ({ quiz, onSave, onCancel, loading = false }: QuizEditorProps
         alert(`Question ${i + 1}: Please enter a question`);
         return;
       }
-      if (q.options.some(opt => !opt.trim())) {
-        alert(`Question ${i + 1}: Please fill in all options`);
-        return;
-      }
-      if (!q.answer.trim()) {
-        alert(`Question ${i + 1}: Please select a correct answer`);
-        return;
-      }
-      if (!q.options.includes(q.answer)) {
-        alert(`Question ${i + 1}: Correct answer must be one of the options`);
-        return;
+
+      const type = q.type || 'mcq';
+      if (type === 'mcq') {
+        if (!q.options || q.options.length < 2) {
+          alert(`Question ${i + 1}: MCQ must have at least 2 options`);
+          return;
+        }
+        if (q.options.some(opt => !opt.trim())) {
+          alert(`Question ${i + 1}: Please fill in all options for MCQ`);
+          return;
+        }
+        if (!q.answer.trim()) {
+          alert(`Question ${i + 1}: Please select a correct answer`);
+          return;
+        }
+        if (!q.options.includes(q.answer)) {
+          alert(`Question ${i + 1}: Correct answer must be one of the options`);
+          return;
+        }
+      } else if (type === 'tf') {
+        // True/False
+        if (!q.answer.trim()) {
+          alert(`Question ${i + 1}: Please select True or False as the correct answer`);
+          return;
+        }
+        if (!['True', 'False'].includes(q.answer)) {
+          alert(`Question ${i + 1}: Correct answer for True/False must be 'True' or 'False'`);
+          return;
+        }
+      } else if (type === 'fill') {
+        // Fill ups require an answer string
+        if (!q.answer.trim()) {
+          alert(`Question ${i + 1}: Please provide the correct answer for the fill-up`);
+          return;
+        }
       }
     }
 
@@ -204,53 +230,99 @@ const QuizEditor = ({ quiz, onSave, onCancel, loading = false }: QuizEditorProps
               }}
             />
 
-            {/* Options */}
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Options</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-              {question.options.map((option, optIndex) => (
-                <div key={optIndex}>
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => updateOption(qIndex, optIndex, e.target.value)}
-                    placeholder={`Option ${optIndex + 1}`}
-                    style={{
-                      width: '100%',
-                      padding: '0.6rem',
-                      border: option === question.answer ? '2px solid #28a745' : '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '0.95rem',
-                      backgroundColor: option === question.answer ? '#d4edda' : 'white'
-                    }}
-                  />
-                  <small style={{ color: '#666', display: 'block', marginTop: '0.25rem' }}>
-                    {option === question.answer && '✓ Correct Answer'}
-                  </small>
-                </div>
-              ))}
-            </div>
-
-            {/* Correct Answer Selection */}
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Mark Correct Answer</label>
-            <select
-              value={question.answer}
-              onChange={(e) => updateQuestion(qIndex, 'answer', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                marginBottom: '1rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '1rem'
-              }}
-            >
-              <option value="">-- Select Correct Answer --</option>
-              {question.options.map((option, optIndex) => (
-                <option key={optIndex} value={option}>
-                  {option || `Option ${optIndex + 1}`}
-                </option>
-              ))}
+            {/* Question Type */}
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Question Type</label>
+            <select value={question.type || 'mcq'} onChange={(e) => {
+              const newType = e.target.value as 'mcq' | 'tf' | 'fill';
+              // Update question type and adjust options/answer accordingly
+              if (newType === 'tf') {
+                updateQuestion(qIndex, 'type', 'tf');
+                updateQuestion(qIndex, 'options', ['True', 'False']);
+                if (!['True', 'False'].includes(question.answer)) updateQuestion(qIndex, 'answer', '');
+              } else if (newType === 'fill') {
+                updateQuestion(qIndex, 'type', 'fill');
+                updateQuestion(qIndex, 'options', []);
+                // keep answer as text
+              } else {
+                updateQuestion(qIndex, 'type', 'mcq');
+                updateQuestion(qIndex, 'options', question.options && question.options.length >= 2 ? question.options : ['', '', '', '']);
+                if (!question.options.includes(question.answer)) updateQuestion(qIndex, 'answer', '');
+              }
+            }} style={{ width: '100%', padding: '0.6rem', borderRadius: 4, border: '1px solid #ddd', marginBottom: '0.75rem' }}>
+              <option value="mcq">MCQ</option>
+              <option value="tf">True / False</option>
+              <option value="fill">Fill Up</option>
             </select>
+
+            {/* Options area for MCQ and TF */}
+            {(question.type === 'mcq' || !question.type) && (
+              <>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Options</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  {question.options.map((option, optIndex) => (
+                    <div key={optIndex}>
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => updateOption(qIndex, optIndex, e.target.value)}
+                        placeholder={`Option ${optIndex + 1}`}
+                        style={{
+                          width: '100%',
+                          padding: '0.6rem',
+                          border: option === question.answer ? '2px solid #28a745' : '1px solid #ddd',
+                          borderRadius: '4px',
+                          fontSize: '0.95rem',
+                          backgroundColor: option === question.answer ? '#d4edda' : 'white'
+                        }}
+                      />
+                      <small style={{ color: '#666', display: 'block', marginTop: '0.25rem' }}>
+                        {option === question.answer && '✓ Correct Answer'}
+                      </small>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Correct Answer Selection */}
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Mark Correct Answer</label>
+                <select
+                  value={question.answer}
+                  onChange={(e) => updateQuestion(qIndex, 'answer', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    marginBottom: '1rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '1rem'
+                  }}
+                >
+                  <option value="">-- Select Correct Answer --</option>
+                  {question.options.map((option, optIndex) => (
+                    <option key={optIndex} value={option}>
+                      {option || `Option ${optIndex + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            {question.type === 'tf' && (
+              <>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Mark Correct Answer</label>
+                <select value={question.answer} onChange={(e) => updateQuestion(qIndex, 'answer', e.target.value)} style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '4px' }}>
+                  <option value="">-- Select --</option>
+                  <option value="True">True</option>
+                  <option value="False">False</option>
+                </select>
+              </>
+            )}
+
+            {question.type === 'fill' && (
+              <>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Correct Answer</label>
+                <input type="text" value={question.answer} onChange={(e) => updateQuestion(qIndex, 'answer', e.target.value)} placeholder="Correct answer text" style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', border: '1px solid #ddd', borderRadius: '4px' }} />
+              </>
+            )}
 
             {/* Explanation */}
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Explanation (Optional)</label>

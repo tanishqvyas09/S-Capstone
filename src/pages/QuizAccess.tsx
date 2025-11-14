@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { AuthContext } from '../contexts/AuthContext';
+import { useToast } from '../components/Toast';
 
 const QuizAccess = () => {
   const [searchParams] = useSearchParams();
@@ -8,6 +10,8 @@ const QuizAccess = () => {
   const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { user } = useContext(AuthContext)!;
+  const { showToast } = useToast();
 
   useEffect(() => {
     // Auto-fill code from QR scan
@@ -46,6 +50,56 @@ const QuizAccess = () => {
 
       console.log('[QuizAccess] Quiz found:', data);
       
+      // If a student is logged in, persist this access server-side into `quiz_access`.
+      if (user && user.role === 'student') {
+        try {
+          const record = {
+            id: crypto.randomUUID(),
+            quiz_id: data.id,
+            student_id: user.id,
+            access_code: codeToUse,
+            granted_at: new Date().toISOString()
+          };
+
+          const { error: insertError } = await supabase.from('quiz_access').insert(record);
+          if (insertError) {
+            console.warn('[QuizAccess] Could not write quiz_access record (falling back to localStorage):', insertError.message);
+            showToast('Could not persist access server-side — saved locally', 'warning');
+            throw insertError;
+          }
+
+          console.log('[QuizAccess] Recorded quiz access on server for student:', user.id);
+          showToast('Access recorded on server — opening quiz', 'success');
+        } catch (err) {
+          // Fallback to localStorage if server insert fails
+          try {
+            const stored = localStorage.getItem('enteredQuizCodes');
+            const arr = stored ? JSON.parse(stored) as string[] : [];
+            if (!arr.includes(codeToUse)) {
+              arr.push(codeToUse);
+              localStorage.setItem('enteredQuizCodes', JSON.stringify(arr));
+              console.log('[QuizAccess] Persisted access code in localStorage as fallback');
+            }
+          } catch (e) {
+            console.warn('[QuizAccess] Could not persist access code to localStorage:', e);
+          }
+        }
+      } else {
+        // Not logged in: persist locally so dashboard can surface unlocked quizzes
+        try {
+          const stored = localStorage.getItem('enteredQuizCodes');
+          const arr = stored ? JSON.parse(stored) as string[] : [];
+          if (!arr.includes(codeToUse)) {
+            arr.push(codeToUse);
+            localStorage.setItem('enteredQuizCodes', JSON.stringify(arr));
+            console.log('[QuizAccess] Persisted access code in localStorage');
+            showToast('Quiz unlocked locally — opening quiz', 'info');
+          }
+        } catch (e) {
+          console.warn('[QuizAccess] Could not persist access code to localStorage:', e);
+        }
+      }
+
       // Redirect to the quiz
       navigate(`/student/quiz/${data.id}`);
     } catch (err) {

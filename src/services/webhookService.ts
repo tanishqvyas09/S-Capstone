@@ -1,4 +1,4 @@
-// Service for sending PDF to webhook for AI-powered question generation
+// Service for sending files to webhook for AI-powered question generation
 
 interface WebhookResponse {
   success: boolean;
@@ -53,27 +53,25 @@ export async function testWebhook(webhookUrl: string): Promise<any> {
 }
 
 /**
- * Sends PDF file(s) to webhook for AI-powered question generation
- * @param files - Single PDF file or array of PDF files (max 3)
+ * Sends file(s) to webhook for AI-powered question generation
+ * @param files - Single file or array of files (max 3)
  * @param webhookUrl - The webhook URL to send the data to
  * @returns Promise with generated questions or error
  */
-export async function sendPDFToWebhook(
+export async function sendFilesToWebhook(
   files: File | File[],
-  webhookUrl: string
+  webhookUrl: string,
+  options?: { questionCount?: number; difficulty?: string; questionType?: string; onChunk?: (chunk: string) => void }
 ): Promise<WebhookResponse> {
-  console.log('[WebhookService] Sending PDF(s) to webhook:', webhookUrl);
+  console.log('[WebhookService] Sending file(s) to webhook:', webhookUrl);
   
   try {
     // Convert to array if single file
     const fileArray = Array.isArray(files) ? files : [files];
     
-    // Limit to 3 files
-    if (fileArray.length > 3) {
-      throw new Error('Maximum 3 PDF files allowed');
-    }
+    // No client-side limit on number of files; webhook/service should handle limits
 
-    // Create FormData to send the PDF file(s)
+    // Create FormData to send the file(s)
     const formData = new FormData();
     
     // Append all files
@@ -83,6 +81,10 @@ export async function sendPDFToWebhook(
     });
     
     formData.append('fileCount', fileArray.length.toString());
+    // Append generation options if provided
+    if (options?.questionCount) formData.append('questionCount', String(options.questionCount));
+    if (options?.difficulty) formData.append('difficulty', options.difficulty);
+    if (options?.questionType) formData.append('questionType', options.questionType);
     formData.append('timestamp', new Date().toISOString());
 
     console.log('[WebhookService] FormData prepared with', fileArray.length, 'file(s)');
@@ -98,14 +100,41 @@ export async function sendPDFToWebhook(
     console.log('[WebhookService] Response status:', response.status);
     console.log('[WebhookService] Response headers:', Object.fromEntries(response.headers.entries()));
 
-    // Get response as text first to see what we got
-    const responseText = await response.text();
-    console.log('[WebhookService] Raw response text:', responseText);
-    console.log('[WebhookService] Response length:', responseText.length);
+    // Attempt to read streaming body if available (best-effort)
+    let responseText = '';
+    try {
+      const reader = (response as any).body?.getReader?.();
+      if (reader) {
+        console.log('[WebhookService] Response is streaming; reading chunks...');
+        const decoder = new TextDecoder();
+        let done = false;
+        while (!done) {
+          const { value, done: d } = await reader.read();
+          done = d;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            responseText += chunk;
+            if (options?.onChunk) {
+              try { options.onChunk(chunk); } catch (e) { console.warn('onChunk handler failed', e); }
+            }
+            console.log('[WebhookService] Received chunk length:', chunk.length);
+          }
+        }
+        // finalize any remaining
+        responseText += decoder.decode();
+      } else {
+        // Not streaming; fall back to text()
+        responseText = await response.text();
+      }
+    } catch (streamErr) {
+      console.warn('[WebhookService] Error reading streaming response, falling back to text():', streamErr);
+      try { responseText = await response.text(); } catch (e) { responseText = ''; }
+    }
+    console.log('[WebhookService] Raw response text length:', responseText.length);
 
-    // ✅ SUCCESS: If we got status 200, the PDF reached n8n!
+    // ✅ SUCCESS: If we got status 200, the file(s) reached n8n!
     if (response.status === 200) {
-      console.log('✅ SUCCESS: PDF was received by n8n webhook (status 200)');
+      console.log('✅ SUCCESS: File(s) were received by n8n webhook (status 200)');
     }
 
     if (!response.ok) {
@@ -115,12 +144,12 @@ export async function sendPDFToWebhook(
 
     // Check if response is empty
     if (!responseText || responseText.trim().length === 0) {
-      console.warn('⚠️ PDF SENT SUCCESSFULLY but n8n returned EMPTY response');
+      console.warn('⚠️ FILE(S) SENT SUCCESSFULLY but n8n returned EMPTY response');
       console.warn('This means:');
-      console.warn('  ✅ Your PDF reached n8n');
+      console.warn('  ✅ Your file(s) reached n8n');
       console.warn('  ❌ n8n workflow is NOT sending response back');
       throw new Error(
-        'PDF sent successfully to n8n, but no response received.\n\n' +
+        'Files sent successfully to n8n, but no response received.\n\n' +
         '🔧 Fix in n8n:\n' +
         '1. Add "Respond to Webhook" node at the end of your workflow\n' +
         '2. Set response format to JSON\n' +
@@ -145,8 +174,20 @@ export async function sendPDFToWebhook(
       data = JSON.parse(responseText);
       console.log('[WebhookService] Parsed JSON response:', data);
     } catch (e) {
-      console.error('[WebhookService] Failed to parse JSON response:', responseText);
-      throw new Error(`Webhook returned invalid JSON. Raw response: ${responseText.substring(0, 200)}`);
+      // Some streaming responses may send multiple JSON chunks; try to salvage by extracting last JSON object
+      try {
+        const lastBrace = responseText.lastIndexOf('{');
+        if (lastBrace !== -1) {
+          const possible = responseText.slice(lastBrace);
+          data = JSON.parse(possible);
+          console.log('[WebhookService] Parsed JSON from trailing chunk:', data);
+        } else {
+          throw e;
+        }
+      } catch (e2) {
+        console.error('[WebhookService] Failed to parse JSON response:', responseText);
+        throw new Error(`Webhook returned invalid JSON. Raw response (truncated): ${responseText.substring(0, 200)}`);
+      }
     }
 
     // Handle n8n array response format: [{ output: { questions: [...] } }]
@@ -186,6 +227,9 @@ export async function sendPDFToWebhook(
     throw error;
   }
 }
+
+// Backwards compatible alias for older callers
+export const sendPDFToWebhook = sendFilesToWebhook;
 
 /**
  * Alternative: Send only text to webhook (lighter payload)

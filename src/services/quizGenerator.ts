@@ -1,6 +1,6 @@
 /**
  * QuizGenerator Service
- * Generates quiz questions from extracted PDF text
+ * Generates quiz questions from extracted file text
  * 
  * In production, this would call an AI API (OpenAI, Claude, Cohere, etc.)
  * For now, we'll use a mock generator that creates smart questions from the text
@@ -72,7 +72,7 @@ export const generateQuizQuestions = async (
   console.log('[QuizGenerator] Generating questions from text, length:', extractedText.length);
 
   if (!extractedText || extractedText.trim().length < 100) {
-    throw new Error('Text is too short to generate meaningful questions. Please upload a longer PDF.');
+    throw new Error('Text is too short to generate meaningful questions. Please upload a longer file.');
   }
 
   try {
@@ -80,7 +80,7 @@ export const generateQuizQuestions = async (
     const keySentences = extractKeySentences(extractedText, questionCount);
 
     if (keySentences.length === 0) {
-      throw new Error('Could not extract meaningful sentences from the PDF');
+      throw new Error('Could not extract meaningful sentences from the file');
     }
 
     // Convert sentences to questions
@@ -114,7 +114,7 @@ export const generateQuizQuestions = async (
  */
 export const generateQuizMetadata = (fileName: string, extractedText: string) => {
   // Extract title from filename or use a default
-  const fileNameWithoutExt = fileName.replace('.pdf', '');
+  const fileNameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
   const title = fileNameWithoutExt.charAt(0).toUpperCase() + fileNameWithoutExt.slice(1);
 
   // Extract a short description from the first 200 characters

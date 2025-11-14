@@ -304,7 +304,7 @@ const LandingPage = () => {
               icon: <Zap size={32} />,
               gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               title: 'AI-Powered Generation',
-              desc: 'Transform any PDF or document into engaging quizzes in seconds using advanced AI technology'
+              desc: 'Transform any document into engaging quizzes in seconds using advanced AI technology'
             },
             {
               icon: <Target size={32} />,
@@ -439,7 +439,7 @@ const LandingPage = () => {
             margin: '0 auto'
           }}>
             {[
-              'Instant quiz generation from PDFs',
+              'Instant quiz generation from documents',
               'Multiple question type support',
               'Real-time student analytics',
               'Automated grading & feedback',

@@ -130,6 +130,81 @@ body {
   font-size: 1rem;
 }
 
+/* Auth form specific styles */
+.auth-container {
+  display: flex;
+  max-width: 900px;
+  margin: 2rem auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.auth-left {
+  flex: 1.1;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+}
+.auth-left h2 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+.auth-left p {
+  margin: 0;
+  opacity: 0.95;
+}
+.auth-form {
+  flex: 1;
+  background: white;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+.auth-error {
+  background-color: #fee;
+  color: #c33;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  border: 1px solid #fcc;
+}
+.auth-submit {
+  width: 100%;
+  margin-top: 10px;
+  opacity: 1;
+  cursor: pointer;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  transition: all 0.3s;
+}
+
+@media (max-width: 780px) {
+  .auth-container {
+    flex-direction: column;
+    margin: 1rem;
+    border-radius: 10px;
+  }
+  .auth-left {
+    padding: 1.5rem;
+    border-radius: 10px 10px 0 0;
+  }
+  .auth-form {
+    padding: 1.25rem;
+  }
+  .auth-left h2 {
+    font-size: 1.5rem;
+  }
+}
+
 .card {
   background: white;
   border: 1px solid #ddd;
@@ -178,4 +253,55 @@ nav a {
 
 nav a:hover {
   text-decoration: underline;
+}
+
+/* Toast styles */
+.toast-container {
+  position: fixed;
+  right: 16px;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: 380px;
+  background: #111827;
+  color: white;
+  padding: 12px 14px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+}
+.toast.success { background: linear-gradient(90deg,#10b981,#059669); }
+.toast.error { background: linear-gradient(90deg,#ef4444,#dc2626); }
+.toast.info { background: linear-gradient(90deg,#3b82f6,#2563eb); }
+.toast.warning { background: linear-gradient(90deg,#f59e0b,#d97706); }
+.toast-message { flex: 1; font-weight: 600; }
+.toast-close { background: transparent; border: none; color: rgba(255,255,255,0.9); font-size: 16px; cursor: pointer; }
+
+/* Spinner for streaming indicator */
+.streaming-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.85;
+  box-shadow: 14px 0 0 0 white, 28px 0 0 0 white;
+  animation: streaming-dots 1s linear infinite;
+}
+@keyframes streaming-dots {
+  0% { box-shadow: 14px 0 0 0 rgba(255,255,255,0.2), 28px 0 0 0 rgba(255,255,255,0.2); }
+  33% { box-shadow: 14px 0 0 0 rgba(255,255,255,0.6), 28px 0 0 0 rgba(255,255,255,0.2); }
+  66% { box-shadow: 14px 0 0 0 rgba(255,255,255,0.6), 28px 0 0 0 rgba(255,255,255,0.6); }
+  100% { box-shadow: 14px 0 0 0 rgba(255,255,255,0.2), 28px 0 0 0 rgba(255,255,255,0.2); }
 }

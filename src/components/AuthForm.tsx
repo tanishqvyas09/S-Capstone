@@ -48,8 +48,8 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
         await signup(email, password, role, extra);
         console.log('[AuthForm] Signup successful');
       } else {
-        console.log('[AuthForm] Calling login with:', { email });
-        await login(email, password);
+        console.log('[AuthForm] Calling login with:', { email, role });
+        await login(email, password, role);
         console.log('[AuthForm] Login successful');
       }
       console.log('[AuthForm] Navigating to dashboard...');
@@ -65,18 +65,20 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-      {error && (
-        <div style={{ 
-          backgroundColor: '#fee', 
-          color: '#c33', 
-          padding: '10px', 
-          borderRadius: '4px', 
-          marginBottom: '15px',
-          border: '1px solid #fcc'
-        }}>
-          {error}
+    <div className="auth-container">
+      <div className="auth-left">
+        <h2>{isSignup ? 'Create your account' : 'Welcome back'}</h2>
+        <p>Sign {isSignup ? 'up' : 'in'} to access {role === 'teacher' ? 'the teacher dashboard' : 'student portal'} and create interactive quizzes with EngageAI.</p>
+        <div style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.95 }}>
+          <div>• AI-powered quiz generation</div>
+          <div>• Fast sharing and access codes</div>
+          <div>• Secure student results</div>
         </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="auth-form">
+      {error && (
+        <div className="auth-error">{error}</div>
       )}
 
       <input 
@@ -185,29 +187,17 @@ const AuthForm: React.FC<Props> = ({ role, isSignup }) => {
           )}
         </>
       )}
-      <button 
-        type="submit" 
-        className="btn-primary" 
-        style={{ 
-          width: '100%', 
-          marginTop: 10, 
-          opacity: loading ? 0.6 : 1, 
-          cursor: loading ? 'not-allowed' : 'pointer',
-          padding: '0.75rem',
-          fontSize: '1rem',
-          fontWeight: '600',
-          borderRadius: '8px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          border: 'none',
-          color: 'white',
-          transition: 'all 0.3s'
-        }} 
+      <button
+        type="submit"
+        className="btn-primary auth-submit"
+        style={{ opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         disabled={loading}
       >
         {loading ? (isSignup ? 'Creating Account...' : 'Logging In...') : (isSignup ? 'Create Account' : 'Login')}
       </button>
     </form>
+    </div>
   );
-};
+}
 
 export default AuthForm;

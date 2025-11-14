@@ -9,22 +9,30 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const allowedExtensions = ['.pdf', '.pptx', '.docx'];
+  const allowedMimePrefixes = ['audio/'];
+
+  const isValidFile = (f: File) => {
+    const name = f.name.toLowerCase();
+    const extValid = allowedExtensions.some(ext => name.endsWith(ext));
+    const mimeValid = allowedMimePrefixes.some(prefix => f.type.startsWith(prefix));
+    // Also accept PDFs by mime type
+    const pdfMime = f.type === 'application/pdf';
+    return extValid || mimeValid || pdfMime;
+  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files);
-      
-      // Check if all files are PDFs
-      const invalidFiles = selectedFiles.filter(f => f.type !== 'application/pdf');
+
+      // Validate allowed types
+      const invalidFiles = selectedFiles.filter(f => !isValidFile(f));
       if (invalidFiles.length > 0) {
-        alert('Please select only PDF files');
+        alert('Please select only PDF, PPTX, DOCX or audio files');
         return;
       }
 
-      // Limit to 3 files
-      if (selectedFiles.length > 3) {
-        alert('Maximum 3 PDF files allowed');
-        return;
-      }
+      // No client-side limit on number of files; server/webhook should handle large uploads
 
       setFiles(selectedFiles);
     }
@@ -32,7 +40,7 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
 
   const handleClick = async () => {
     if (files.length === 0) {
-      alert('Please select at least one PDF file');
+      alert('Please select at least one file');
       return;
     }
 
@@ -45,7 +53,7 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
       }
     } catch (error) {
       console.error('[FileUploader] Upload error:', error);
-      alert('Error uploading PDF(s). Please try again.');
+      alert('Error uploading file(s). Please try again.');
     }
   };
 
@@ -58,20 +66,20 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
       backgroundColor: '#f8f9fa',
       marginBottom: '2rem'
     }}>
-      <h3>📄 Upload PDFs to Generate Quiz</h3>
-      <p style={{ color: '#666', marginBottom: '1rem' }}>Select 1-3 PDF files from your notes to auto-generate quiz questions</p>
+      <h3>📁 Upload files to Generate Quiz</h3>
+      <p style={{ color: '#666', marginBottom: '1rem' }}>Select one or more files (PDF, PPTX, DOCX or audio) to auto-generate quiz questions</p>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf"
+        accept=".pdf,.pptx,.docx,audio/*"
         multiple
         onChange={handleChange}
         style={{ display: 'none' }}
-        id="pdf-input"
+        id="file-input"
       />
 
-      <label htmlFor="pdf-input">
+      <label htmlFor="file-input">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -88,7 +96,7 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
             opacity: loading ? 0.6 : 1
           }}
         >
-          {loading ? '⏳ Processing...' : '📁 Choose PDFs (1-3)'}
+          {loading ? '⏳ Processing...' : '📁 Choose Files'}
         </button>
       </label>
 

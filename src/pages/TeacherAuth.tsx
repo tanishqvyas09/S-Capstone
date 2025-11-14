@@ -8,7 +8,7 @@ const TeacherAuth = () => {
   console.log('[TeacherAuth] Rendered, isSignup:', isSignup);
 
   return (
-    <div style={{ 
+    <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
@@ -17,67 +17,34 @@ const TeacherAuth = () => {
       justifyContent: 'center',
       padding: '2rem'
     }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '2rem',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        width: '100%',
-        maxWidth: '450px'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
-            color: '#1f2937',
-            marginBottom: '0.5rem'
-          }}>
-            Teacher {isSignup ? 'Registration' : 'Login'}
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: '0.95rem' }}>
-            {isSignup ? 'Create your teacher account' : 'Welcome back! Please login'}
-          </p>
-        </div>
-        
-        <AuthForm role="teacher" isSignup={isSignup} />
-        
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: '1.5rem',
-          paddingTop: '1.5rem',
-          borderTop: '1px solid #e5e7eb'
-        }}>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>
-            {isSignup ? 'Already have an account?' : "Don't have an account?"}
-            {' '}
-            <button
-              onClick={() => setIsSignup(!isSignup)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#667eea',
-                fontWeight: '600',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                fontSize: '0.9rem'
-              }}
-            >
-              {isSignup ? 'Login here' : 'Register here'}
-            </button>
-          </p>
-          <Link 
-            to="/" 
+      <div style={{ textAlign: 'center', marginBottom: '1rem', color: 'white' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Teacher {isSignup ? 'Registration' : 'Login'}</h1>
+        <p style={{ color: 'rgba(255,255,255,0.9)', marginTop: 8 }}>{isSignup ? 'Create your teacher account' : 'Welcome back! Please login'}</p>
+      </div>
+
+      <AuthForm role="teacher" isSignup={isSignup} />
+
+      <div style={{ textAlign: 'center', marginTop: '1rem', color: 'white' }}>
+        <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.95rem' }}>
+          {isSignup ? 'Already have an account?' : "Don't have an account?"}
+          {' '}
+          <button
+            onClick={() => setIsSignup(!isSignup)}
             style={{
-              display: 'inline-block',
-              marginTop: '1rem',
-              color: '#6b7280',
-              fontSize: '0.85rem',
-              textDecoration: 'none'
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              fontWeight: 700,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontSize: '0.95rem',
+              marginLeft: 6
             }}
           >
-            ← Back to Home
-          </Link>
-        </div>
+            {isSignup ? 'Login here' : 'Register here'}
+          </button>
+        </p>
+        <Link to="/" style={{ display: 'inline-block', marginTop: '0.75rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', textDecoration: 'none' }}>← Back to Home</Link>
       </div>
     </div>
   );

@@ -24,24 +24,65 @@ const StudentDashboard = () => {
     try {
       setFetching(true);
       console.log('[StudentDashboard] Fetching quizzes and scores for student:', user.id);
-
-      const { data: quizData, error: quizError } = await supabase
-        .from('quizzes')
-        .select('*');
-      if (quizError) throw quizError;
-      console.log('[StudentDashboard] Quizzes fetched:', quizData);
-      setQuizzes(quizData || []);
-
+      // First fetch scores (quizzes the student has attempted)
       const { data: scoreData, error: scoreError } = await supabase
         .from('scores')
         .select('quiz_id, score')
         .eq('student_id', user.id);
       if (scoreError) throw scoreError;
-      
       const map: Record<string, string> = {};
       scoreData?.forEach(s => (map[s.quiz_id] = s.score));
-      console.log('[StudentDashboard] Scores fetched:', map);
       setScores(map);
+
+      // Build list of quiz IDs the student attempted
+      const attemptedIds = Object.keys(map);
+
+      // Try to fetch server-side `quiz_access` records for this student (quizzes unlocked via code)
+      let accessQuizIds: string[] = [];
+      try {
+        const { data: accessRows, error: accessError } = await supabase
+          .from('quiz_access')
+          .select('quiz_id')
+          .eq('student_id', user.id);
+        if (accessError) {
+          console.warn('[StudentDashboard] quiz_access query failed, falling back to localStorage:', accessError.message);
+          throw accessError;
+        }
+        accessQuizIds = (accessRows || []).map((r: any) => r.quiz_id).filter(Boolean);
+      } catch (e) {
+        // Fallback: read enteredQuizCodes from localStorage if server-side table not available
+        try {
+          const stored = localStorage.getItem('enteredQuizCodes');
+          const enteredCodes = stored ? JSON.parse(stored) as string[] : [];
+          if (enteredCodes.length > 0) {
+            const { data: codeQuizzes, error: codeError } = await supabase
+              .from('quizzes')
+              .select('id')
+              .in('access_code', enteredCodes);
+            if (!codeError && codeQuizzes) accessQuizIds = codeQuizzes.map((q: any) => q.id);
+          }
+        } catch (err) {
+          console.warn('[StudentDashboard] Fallback localStorage read failed:', err);
+        }
+      }
+
+      // Merge attemptedIds and accessQuizIds
+      const allQuizIds = Array.from(new Set([...attemptedIds, ...accessQuizIds]));
+
+      // Fetch quizzes by these ids
+      const quizzesSet: Record<string, Quiz> = {};
+      if (allQuizIds.length > 0) {
+        const { data: fetchedQuizzes, error: fetchError } = await supabase
+          .from('quizzes')
+          .select('*')
+          .in('id', allQuizIds);
+        if (fetchError) throw fetchError;
+        fetchedQuizzes?.forEach((q: Quiz) => { quizzesSet[q.id] = q; });
+      }
+
+      const finalQuizzes = Object.values(quizzesSet);
+      console.log('[StudentDashboard] Quizzes visible to student:', finalQuizzes);
+      setQuizzes(finalQuizzes || []);
     } catch (error) {
       console.error('[StudentDashboard] Error fetching data:', error);
     } finally {
@@ -159,16 +200,16 @@ const StudentDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
             <div>
               <h1 style={{ 
-                margin: '0 0 0.5rem 0', 
-                fontSize: '2.25rem', 
-                fontWeight: '700',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>
-                Welcome Back! 👋
-              </h1>
+                    margin: '0 0 0.5rem 0', 
+                    fontSize: '2.25rem', 
+                    fontWeight: '700',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    EngageAI — Welcome Back! 👋
+                  </h1>
               <p style={{ margin: 0, color: '#64748b', fontSize: '1rem', fontWeight: '500' }}>
                 {user.email}
               </p>

@@ -16,7 +16,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role?: 'teacher' | 'student') => Promise<void>;
   signup: (email: string, password: string, role: 'teacher' | 'student', data: any) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -34,36 +34,60 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: 'teacher' | 'student') => {
     console.log('[AuthProvider] Login attempt for:', email);
     
     try {
-      // Try to find user in teachers table first
-      const { data: teacherData, error: teacherError } = await supabase
-        .from('teachers')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .maybeSingle();
-      
-      if (teacherData) {
-        console.log('[AuthProvider] Teacher login successful:', teacherData);
-        setUser({ ...teacherData, role: 'teacher' });
-        return;
-      }
-      
-      // Try students table
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .maybeSingle();
-      
-      if (studentData) {
-        console.log('[AuthProvider] Student login successful:', studentData);
-        setUser({ ...studentData, role: 'student' });
-        return;
+      // If role is specified, only check that table to avoid cross-role logins
+      if (role === 'teacher') {
+        const { data: teacherData } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+        if (teacherData) {
+          console.log('[AuthProvider] Teacher login successful:', teacherData);
+          setUser({ ...teacherData, role: 'teacher' });
+          return;
+        }
+      } else if (role === 'student') {
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+        if (studentData) {
+          console.log('[AuthProvider] Student login successful:', studentData);
+          setUser({ ...studentData, role: 'student' });
+          return;
+        }
+      } else {
+        // No role specified: try teachers first, then students (backwards compatible)
+        const { data: teacherData } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+        if (teacherData) {
+          console.log('[AuthProvider] Teacher login successful:', teacherData);
+          setUser({ ...teacherData, role: 'teacher' });
+          return;
+        }
+
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+        if (studentData) {
+          console.log('[AuthProvider] Student login successful:', studentData);
+          setUser({ ...studentData, role: 'student' });
+          return;
+        }
       }
       
       // If no match found

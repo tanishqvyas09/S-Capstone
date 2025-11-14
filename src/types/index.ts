@@ -3,6 +3,7 @@ export interface Question {
   question: string;
   options: string[];
   answer: string;
+  type?: 'mcq' | 'tf' | 'fill';
   explanation?: string;
 }
 

@@ -147,27 +147,29 @@ const StudentDashboard = () => {
         }}>
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔒</div>
           <h2 style={{ margin: '0 0 0.5rem 0', color: '#1a202c' }}>Authentication Required</h2>
-          <p style={{ color: '#718096', marginBottom: '2rem' }}>Please log in to access your dashboard</p>
+          <p style={{ color: '#9CA3AF', marginBottom: '2rem', fontSize: '1.1rem' }}>Please log in to access your dashboard</p>
           <Link to="/student/auth" style={{ textDecoration: 'none' }}>
             <button style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
+              background: '#14B8A6',
+              color: '#FFFFFF',
               padding: '0.875rem 2rem',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '10px',
               fontSize: '1rem',
               fontWeight: '600',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(102,126,234,0.4)'
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 15px rgba(20, 184, 166, 0.3)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(102,126,234,0.5)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.background = '#0D9488';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(20, 184, 166, 0.4)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102,126,234,0.4)';
+              e.currentTarget.style.background = '#14B8A6';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(20, 184, 166, 0.3)';
             }}>
               Go to Login
             </button>
@@ -184,18 +186,20 @@ const StudentDashboard = () => {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '2rem 1rem'
+      background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%)',
+      padding: '2rem 1rem',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Header Section */}
         <div style={{
-          background: 'rgba(255,255,255,0.98)',
+          background: 'rgba(31, 41, 55, 0.5)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
           borderRadius: '20px',
           padding: '2rem 2.5rem',
           marginBottom: '2rem',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          backdropFilter: 'blur(10px)'
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
             <div>
@@ -203,14 +207,12 @@ const StudentDashboard = () => {
                     margin: '0 0 0.5rem 0', 
                     fontSize: '2.25rem', 
                     fontWeight: '700',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
+                    color: '#FFFFFF',
+                    letterSpacing: '-0.02em'
                   }}>
                     EngageAI — Welcome Back! 👋
                   </h1>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '1rem', fontWeight: '500' }}>
+              <p style={{ margin: 0, color: '#9CA3AF', fontSize: '1rem', fontWeight: '500' }}>
                 {user.email}
               </p>
             </div>
@@ -219,44 +221,64 @@ const StudentDashboard = () => {
                 onClick={fetchData}
                 disabled={fetching}
                 style={{
-                  background: fetching ? '#e2e8f0' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: fetching ? '#94a3b8' : 'white',
+                  background: fetching ? 'rgba(100, 100, 100, 0.3)' : '#14B8A6',
+                  color: fetching ? '#6B7280' : '#FFFFFF',
                   padding: '0.75rem 1.5rem',
                   border: 'none',
                   borderRadius: '10px',
                   cursor: fetching ? 'not-allowed' : 'pointer',
                   fontWeight: '600',
                   fontSize: '0.95rem',
-                  transition: 'all 0.3s ease',
-                  boxShadow: fetching ? 'none' : '0 4px 15px rgba(16,185,129,0.3)',
+                  transition: 'all 0.2s ease',
+                  boxShadow: fetching ? 'none' : '0 2px 8px rgba(20, 184, 166, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}
-                onMouseEnter={(e) => !fetching && (e.currentTarget.style.transform = 'translateY(-2px)')}
-                onMouseLeave={(e) => !fetching && (e.currentTarget.style.transform = 'translateY(0)')}
+                onMouseEnter={(e) => {
+                  if (!fetching) {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.background = '#0D9488';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(20, 184, 166, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!fetching) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.background = '#14B8A6';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(20, 184, 166, 0.3)';
+                  }
+                }}
               >
                 <span style={{ fontSize: '1.2rem' }}>🔄</span>
                 {fetching ? 'Refreshing...' : 'Refresh'}
               </button>
               <Link to="/student/auth" style={{ textDecoration: 'none' }}>
                 <button style={{
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  color: 'white',
+                  background: 'rgba(75, 85, 99, 0.8)',
+                  color: '#FFFFFF',
                   padding: '0.75rem 1.5rem',
-                  border: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '10px',
                   cursor: 'pointer',
                   fontWeight: '600',
                   fontSize: '0.95rem',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(239,68,68,0.3)',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.background = 'rgba(55, 65, 81, 0.9)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.background = 'rgba(75, 85, 99, 0.8)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+                }}
                 >
                   <span style={{ fontSize: '1.2rem' }}>🚪</span>
                   Logout
@@ -274,56 +296,90 @@ const StudentDashboard = () => {
           marginBottom: '2rem'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            background: 'rgba(31, 41, 55, 0.5)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            borderLeft: '3px solid #14B8A6',
             borderRadius: '16px',
             padding: '1.75rem',
-            boxShadow: '0 10px 30px rgba(59,130,246,0.3)',
-            color: 'white'
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
           }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📚</div>
-            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', opacity: 0.9, fontWeight: '500' }}>Total Quizzes</h3>
-            <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700' }}>{totalCount}</p>
+            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', color: '#9CA3AF', fontWeight: '500' }}>Total Quizzes</h3>
+            <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700', color: '#14B8A6' }}>{totalCount}</p>
           </div>
           
           <div style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: 'rgba(31, 41, 55, 0.5)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            borderLeft: '3px solid #F59E0B',
             borderRadius: '16px',
             padding: '1.75rem',
-            boxShadow: '0 10px 30px rgba(16,185,129,0.3)',
-            color: 'white'
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
           }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✅</div>
-            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', opacity: 0.9, fontWeight: '500' }}>Completed</h3>
-            <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700' }}>{completedCount}</p>
+            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', color: '#9CA3AF', fontWeight: '500' }}>Completed</h3>
+            <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700', color: '#F59E0B' }}>{completedCount}</p>
           </div>
           
           <div style={{
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            background: 'rgba(31, 41, 55, 0.5)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            borderLeft: '3px solid #6B7280',
             borderRadius: '16px',
             padding: '1.75rem',
-            boxShadow: '0 10px 30px rgba(245,158,11,0.3)',
-            color: 'white'
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
           }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📊</div>
-            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', opacity: 0.9, fontWeight: '500' }}>Progress</h3>
-            <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700' }}>{progressPercentage.toFixed(0)}%</p>
+            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', color: '#9CA3AF', fontWeight: '500' }}>Progress</h3>
+            <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700', color: '#E5E7EB' }}>{progressPercentage.toFixed(0)}%</p>
           </div>
         </div>
 
         {/* Quick Access Code Section */}
         <div style={{
-          background: 'rgba(255,255,255,0.98)',
+          background: 'rgba(31, 41, 55, 0.5)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
           borderRadius: '16px',
           padding: '2rem 2.5rem',
           marginBottom: '2rem',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-          backdropFilter: 'blur(10px)'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
             <span style={{ fontSize: '1.75rem' }}>🔑</span>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: '#1a202c' }}>Quick Access</h2>
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: '#FFFFFF' }}>Quick Access</h2>
           </div>
-          <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+          <p style={{ color: '#9CA3AF', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
             Enter your 6-digit quiz code to start immediately
           </p>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -341,22 +397,24 @@ const StudentDashboard = () => {
                   padding: '1rem 1.25rem', 
                   fontSize: '1.25rem', 
                   borderRadius: '12px', 
-                  border: `2px solid ${codeError ? '#ef4444' : accessCode.length === 6 ? '#10b981' : '#e2e8f0'}`,
+                  border: `2px solid ${codeError ? '#EF4444' : accessCode.length === 6 ? '#14B8A6' : 'rgba(255, 255, 255, 0.1)'}`,
                   width: '100%',
                   fontWeight: '600',
                   letterSpacing: '0.25em',
                   textAlign: 'center',
-                  transition: 'all 0.3s ease',
+                  transition: 'all 0.2s ease',
                   outline: 'none',
-                  boxShadow: codeError ? '0 0 0 3px rgba(239,68,68,0.1)' : accessCode.length === 6 ? '0 0 0 3px rgba(16,185,129,0.1)' : 'none'
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  color: '#FFFFFF',
+                  boxShadow: codeError ? '0 0 0 3px rgba(239,68,68,0.1)' : accessCode.length === 6 ? '0 0 0 3px rgba(20, 184, 166, 0.1)' : 'none'
                 }}
                 onKeyPress={(e) => { if (e.key === 'Enter') handleAccessCode(); }}
-                onFocus={(e) => e.currentTarget.style.borderColor = codeError ? '#ef4444' : '#667eea'}
-                onBlur={(e) => e.currentTarget.style.borderColor = codeError ? '#ef4444' : accessCode.length === 6 ? '#10b981' : '#e2e8f0'}
+                onFocus={(e) => e.currentTarget.style.borderColor = codeError ? '#EF4444' : '#14B8A6'}
+                onBlur={(e) => e.currentTarget.style.borderColor = codeError ? '#EF4444' : accessCode.length === 6 ? '#14B8A6' : 'rgba(255, 255, 255, 0.1)'}
               />
               {codeError && (
                 <p style={{ 
-                  color: '#ef4444', 
+                  color: '#EF4444', 
                   margin: '0.5rem 0 0 0', 
                   fontSize: '0.875rem',
                   display: 'flex',
@@ -372,24 +430,34 @@ const StudentDashboard = () => {
               onClick={() => handleAccessCode()}
               style={{ 
                 padding: '1rem 2.5rem',
-                background: accessCode.length === 6 
-                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-                  : '#e2e8f0',
-                color: accessCode.length === 6 ? 'white' : '#94a3b8',
+                background: accessCode.length === 6 ? '#14B8A6' : 'rgba(75, 85, 99, 0.5)',
+                color: accessCode.length === 6 ? '#FFFFFF' : '#6B7280',
                 border: 'none',
                 borderRadius: '12px',
                 cursor: accessCode.length === 6 ? 'pointer' : 'not-allowed',
                 fontSize: '1rem',
                 fontWeight: '700',
-                transition: 'all 0.3s ease',
-                boxShadow: accessCode.length === 6 ? '0 4px 15px rgba(102,126,234,0.4)' : 'none',
+                transition: 'all 0.2s ease',
+                boxShadow: accessCode.length === 6 ? '0 2px 8px rgba(20, 184, 166, 0.3)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem'
               }}
               disabled={accessCode.length !== 6}
-              onMouseEnter={(e) => accessCode.length === 6 && (e.currentTarget.style.transform = 'translateY(-2px)')}
-              onMouseLeave={(e) => accessCode.length === 6 && (e.currentTarget.style.transform = 'translateY(0)')}
+              onMouseEnter={(e) => {
+                if (accessCode.length === 6) {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.background = '#0D9488';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(20, 184, 166, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (accessCode.length === 6) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.background = '#14B8A6';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(20, 184, 166, 0.3)';
+                }
+              }}
             >
               <span style={{ fontSize: '1.25rem' }}>🚀</span>
               Open Quiz
@@ -399,18 +467,19 @@ const StudentDashboard = () => {
 
         {/* Quizzes Section */}
         <div style={{
-          background: 'rgba(255,255,255,0.98)',
+          background: 'rgba(31, 41, 55, 0.5)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
           borderRadius: '16px',
           padding: '2rem 2.5rem',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-          backdropFilter: 'blur(10px)'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.75rem', fontWeight: '700', color: '#1a202c' }}>
+              <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.75rem', fontWeight: '700', color: '#FFFFFF' }}>
                 Available Quizzes
               </h2>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>
+              <p style={{ margin: 0, color: '#9CA3AF', fontSize: '0.95rem' }}>
                 {totalCount === 0 ? 'No quizzes available yet' : `${totalCount} ${totalCount === 1 ? 'quiz' : 'quizzes'} ready for you`}
               </p>
             </div>
@@ -420,14 +489,15 @@ const StudentDashboard = () => {
             <div style={{ 
               textAlign: 'center', 
               padding: '4rem 2rem',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
               borderRadius: '12px'
             }}>
               <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>📝</div>
-              <h3 style={{ fontSize: '1.5rem', color: '#475569', margin: '0 0 0.5rem 0', fontWeight: '600' }}>
+              <h3 style={{ fontSize: '1.5rem', color: '#E5E7EB', margin: '0 0 0.5rem 0', fontWeight: '600' }}>
                 No Quizzes Yet
               </h3>
-              <p style={{ fontSize: '1.1rem', color: '#94a3b8', margin: 0 }}>
+              <p style={{ fontSize: '1.1rem', color: '#9CA3AF', margin: 0 }}>
                 Check back later for new assessments!
               </p>
             </div>
@@ -445,43 +515,41 @@ const StudentDashboard = () => {
                   <div 
                     key={q.id} 
                     style={{ 
-                      border: 'none',
-                      background: isCompleted 
-                        ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' 
-                        : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderLeft: `3px solid ${isCompleted ? '#F59E0B' : '#14B8A6'}`,
+                      background: 'rgba(31, 41, 55, 0.5)',
+                      backdropFilter: 'blur(20px)',
                       padding: '0',
                       borderRadius: '16px',
                       overflow: 'hidden',
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
                       position: 'relative'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-8px)';
-                      e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.15)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                     }}
                   >
-                    {/* Card Header with Gradient */}
+                    {/* Card Header */}
                     <div style={{
-                      background: isCompleted 
-                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                        : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      background: `rgba(${isCompleted ? '245, 158, 11' : '20, 184, 166'}, 0.1)`,
                       padding: '1.5rem',
-                      color: 'white',
-                      position: 'relative'
+                      position: 'relative',
+                      borderBottom: `1px solid rgba(${isCompleted ? '245, 158, 11' : '20, 184, 166'}, 0.2)`
                     }}>
                       {isCompleted && (
                         <div style={{
                           position: 'absolute',
                           top: '1rem',
                           right: '1rem',
-                          background: 'rgba(255,255,255,0.3)',
+                          background: 'rgba(245, 158, 11, 0.2)',
                           backdropFilter: 'blur(10px)',
-                          color: 'white',
+                          color: '#F59E0B',
                           padding: '0.4rem 1rem',
                           borderRadius: '20px',
                           fontSize: '0.8rem',
@@ -489,7 +557,7 @@ const StudentDashboard = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.4rem',
-                          border: '1px solid rgba(255,255,255,0.4)'
+                          border: '1px solid rgba(245, 158, 11, 0.3)'
                         }}>
                           <span>✓</span> COMPLETED
                         </div>
@@ -500,7 +568,7 @@ const StudentDashboard = () => {
                         fontSize: '1.35rem',
                         fontWeight: '700',
                         lineHeight: '1.4',
-                        color: 'white'
+                        color: '#FFFFFF'
                       }}>
                         {q.title}
                       </h3>
@@ -511,7 +579,7 @@ const StudentDashboard = () => {
                       {q.description && (
                         <p style={{ 
                           fontSize: '0.95rem', 
-                          color: '#475569',
+                          color: '#9CA3AF',
                           marginBottom: '1.5rem',
                           lineHeight: '1.6',
                           margin: '0 0 1.5rem 0'
@@ -528,39 +596,39 @@ const StudentDashboard = () => {
                         marginBottom: '1.5rem'
                       }}>
                         <div style={{
-                          background: 'rgba(255,255,255,0.7)',
+                          background: 'rgba(0, 0, 0, 0.3)',
                           padding: '1rem',
                           borderRadius: '12px',
                           textAlign: 'center',
-                          border: '1px solid rgba(0,0,0,0.05)'
+                          border: '1px solid rgba(255, 255, 255, 0.05)'
                         }}>
                           <div style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>📋</div>
-                          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 0.25rem 0', fontWeight: '500' }}>
+                          <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '0 0 0.25rem 0', fontWeight: '500' }}>
                             Questions
                           </p>
-                          <p style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0, color: '#1e293b' }}>
+                          <p style={{ fontSize: '1.5rem', fontWeight: '700', margin: 0, color: '#E5E7EB' }}>
                             {q.questions?.length || 0}
                           </p>
                         </div>
                         
                         <div style={{
-                          background: 'rgba(255,255,255,0.7)',
+                          background: 'rgba(0, 0, 0, 0.3)',
                           padding: '1rem',
                           borderRadius: '12px',
                           textAlign: 'center',
-                          border: '1px solid rgba(0,0,0,0.05)'
+                          border: '1px solid rgba(255, 255, 255, 0.05)'
                         }}>
                           <div style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
                             {isCompleted ? '🎯' : '📝'}
                           </div>
-                          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 0.25rem 0', fontWeight: '500' }}>
+                          <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '0 0 0.25rem 0', fontWeight: '500' }}>
                             {isCompleted ? 'Score' : 'Status'}
                           </p>
                           <p style={{ 
                             fontSize: '1.5rem', 
                             fontWeight: '700', 
                             margin: 0,
-                            color: isCompleted ? '#059669' : '#64748b'
+                            color: isCompleted ? '#F59E0B' : '#6B7280'
                           }}>
                             {isCompleted ? scores[q.id] : 'New'}
                           </p>
@@ -569,14 +637,14 @@ const StudentDashboard = () => {
                       
                       <div style={{
                         padding: '0.75rem',
-                        background: 'rgba(255,255,255,0.5)',
+                        background: 'rgba(0, 0, 0, 0.2)',
                         borderRadius: '8px',
                         marginBottom: '1.5rem',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
                         fontSize: '0.85rem',
-                        color: '#64748b'
+                        color: '#9CA3AF'
                       }}>
                         <span style={{ fontSize: '1rem' }}>📅</span>
                         <span style={{ fontWeight: '500' }}>
@@ -590,10 +658,8 @@ const StudentDashboard = () => {
                       
                       <Link to={`/student/quiz/${q.id}`} style={{ textDecoration: 'none' }}>
                         <button style={{ 
-                          background: isCompleted 
-                            ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                            : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: 'white', 
+                          background: isCompleted ? 'rgba(100, 116, 139, 0.8)' : '#14B8A6',
+                          color: '#FFFFFF', 
                           padding: '1rem 1.5rem', 
                           border: 'none', 
                           borderRadius: '12px', 
@@ -601,26 +667,31 @@ const StudentDashboard = () => {
                           width: '100%',
                           fontSize: '1.05rem',
                           fontWeight: '700',
-                          transition: 'all 0.3s ease',
+                          transition: 'all 0.2s ease',
                           boxShadow: isCompleted 
-                            ? '0 4px 15px rgba(59,130,246,0.4)'
-                            : '0 4px 15px rgba(16,185,129,0.4)',
+                            ? '0 2px 8px rgba(0, 0, 0, 0.2)'
+                            : '0 2px 8px rgba(20, 184, 166, 0.3)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '0.75rem'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.02)';
-                          e.currentTarget.style.boxShadow = isCompleted 
-                            ? '0 6px 20px rgba(59,130,246,0.5)'
-                            : '0 6px 20px rgba(16,185,129,0.5)';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          if (isCompleted) {
+                            e.currentTarget.style.background = 'rgba(71, 85, 105, 0.9)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+                          } else {
+                            e.currentTarget.style.background = '#0D9488';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(20, 184, 166, 0.4)';
+                          }
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.background = isCompleted ? 'rgba(100, 116, 139, 0.8)' : '#14B8A6';
                           e.currentTarget.style.boxShadow = isCompleted 
-                            ? '0 4px 15px rgba(59,130,246,0.4)'
-                            : '0 4px 15px rgba(16,185,129,0.4)';
+                            ? '0 2px 8px rgba(0, 0, 0, 0.2)'
+                            : '0 2px 8px rgba(20, 184, 166, 0.3)';
                         }}
                         >
                           <span style={{ fontSize: '1.25rem' }}>
@@ -641,30 +712,30 @@ const StudentDashboard = () => {
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <button style={{
-              background: 'rgba(255,255,255,0.95)',
-              color: '#667eea',
+              background: 'rgba(75, 85, 99, 0.8)',
+              color: '#FFFFFF',
               padding: '0.875rem 2rem',
-              border: '2px solid rgba(255,255,255,0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '12px',
               cursor: 'pointer',
               fontWeight: '600',
               fontSize: '1rem',
-              transition: 'all 0.3s ease',
+              transition: 'all 0.2s ease',
               backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.75rem'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 25px rgba(0,0,0,0.15)';
-              e.currentTarget.style.background = 'white';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+              e.currentTarget.style.background = 'rgba(55, 65, 81, 0.9)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)';
-              e.currentTarget.style.background = 'rgba(255,255,255,0.95)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+              e.currentTarget.style.background = 'rgba(75, 85, 99, 0.8)';
             }}
             >
               <span style={{ fontSize: '1.25rem' }}>🏠</span>

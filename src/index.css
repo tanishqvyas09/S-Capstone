@@ -1,16 +1,62 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+/* Theme CSS Variables */
+:root, :root.dark, :root[data-theme="dark"] {
+  /* Dark Mode Colors */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --bg-card: #1F2937;
+  --text-primary: #FFFFFF;
+  --text-secondary: #E5E7EB;
+  --text-muted: #9CA3AF;
+  --accent-primary: #14B8A6;
+  --accent-secondary: #F59E0B;
+  --border: rgba(255,255,255,0.1);
+  --glow: rgba(20,184,166,0.4);
+  
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root.light, :root[data-theme="light"] {
+  /* Light Mode Colors */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-card: #FFFFFF;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6B7280;
+  --accent-primary: #0D9488;
+  --accent-secondary: #F97316;
+  --border: rgba(0,0,0,0.1);
+  --glow: rgba(13,148,136,0.2);
+  
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Smooth Theme Transitions */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: 
+    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Disable transitions for canvas during theme change */
+.theme-transitioning canvas {
+  transition: none !important;
 }
 
 * {

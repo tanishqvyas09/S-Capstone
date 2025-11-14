@@ -1,7 +1,6 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage.tsx';
-import About from './pages/About.tsx';
 import TeacherAuth from './pages/TeacherAuth.tsx';
 import TeacherDashboard from './pages/TeacherDashboard.tsx';
 import TeacherQuiz from './pages/TeacherQuiz.tsx';
@@ -17,7 +16,6 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/webhook-test" element={<WebhookTest />} />
-        <Route path="/about" element={<About />} />
         <Route path="/quiz-access" element={<QuizAccess />} />
         <Route path="/teacher/auth" element={<TeacherAuth />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />

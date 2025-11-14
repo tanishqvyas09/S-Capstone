@@ -59,15 +59,26 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
 
   return (
     <div style={{
-      border: '2px dashed #007bff',
+      border: '2px dashed rgba(20, 184, 166, 0.3)',
       padding: '2rem',
-      borderRadius: '8px',
+      borderRadius: '16px',
       textAlign: 'center',
-      backgroundColor: '#f8f9fa',
+      background: 'rgba(30, 30, 30, 0.6)',
+      backdropFilter: 'blur(10px)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
       marginBottom: '2rem'
     }}>
-      <h3>📁 Upload files to Generate Quiz</h3>
-      <p style={{ color: '#666', marginBottom: '1rem' }}>Select one or more files (PDF, PPTX, DOCX or audio) to auto-generate quiz questions</p>
+      <h3 style={{ 
+        color: '#14B8A6',
+        fontSize: '1.5rem',
+        fontWeight: 600,
+        marginBottom: '0.75rem'
+      }}>📁 Upload files to Generate Quiz</h3>
+      <p style={{ 
+        color: 'rgba(255, 255, 255, 0.7)', 
+        marginBottom: '1rem',
+        fontSize: '0.95rem'
+      }}>Select one or more files (PDF, PPTX, DOCX or audio) to auto-generate quiz questions</p>
 
       <input
         ref={fileInputRef}
@@ -85,14 +96,17 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
           style={{
-            backgroundColor: '#007bff',
+            background: loading ? 'rgba(20, 184, 166, 0.3)' : 'linear-gradient(135deg, #14B8A6 0%, #0D9488 100%)',
             color: 'white',
             padding: '0.75rem 1.5rem',
             border: 'none',
-            borderRadius: '4px',
+            borderRadius: '8px',
             cursor: loading ? 'not-allowed' : 'pointer',
             fontSize: '1rem',
             marginRight: '1rem',
+            fontWeight: 600,
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(20, 184, 166, 0.3)',
+            transition: 'all 0.3s ease',
             opacity: loading ? 0.6 : 1
           }}
         >
@@ -108,16 +122,17 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
               marginRight: '0.5rem', 
               marginBottom: '0.5rem',
               padding: '0.5rem 1rem',
-              backgroundColor: '#d4edda',
+              background: 'rgba(20, 184, 166, 0.15)',
+              border: '1px solid rgba(20, 184, 166, 0.3)',
               borderRadius: '20px',
-              color: '#155724',
-              fontWeight: 'bold',
+              color: '#14B8A6',
+              fontWeight: 600,
               fontSize: '0.9rem'
             }}>
               ✓ {f.name}
             </div>
           ))}
-          <div style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
+          <div style={{ marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>
             {files.length} file{files.length > 1 ? 's' : ''} selected
           </div>
         </div>
@@ -127,18 +142,22 @@ const FileUploader = ({ onUpload, loading = false }: FileUploaderProps) => {
         onClick={handleClick}
         disabled={files.length === 0 || loading}
         style={{
-          backgroundColor: '#28a745',
+          background: (files.length === 0 || loading) 
+            ? 'rgba(245, 158, 11, 0.3)' 
+            : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
           color: 'white',
           padding: '0.75rem 2rem',
           border: 'none',
-          borderRadius: '4px',
+          borderRadius: '8px',
           cursor: (files.length === 0 || loading) ? 'not-allowed' : 'pointer',
           fontSize: '1rem',
-          fontWeight: 'bold',
+          fontWeight: 600,
+          boxShadow: (files.length === 0 || loading) ? 'none' : '0 4px 12px rgba(245, 158, 11, 0.3)',
+          transition: 'all 0.3s ease',
           opacity: (files.length === 0 || loading) ? 0.6 : 1
         }}
       >
-        {loading ? '🤖 Generating Quiz...' : '🚀 Generate Quiz'}
+        {loading ? 'Generating Quiz...' : '🚀 Generate Quiz'}
       </button>
     </div>
   );

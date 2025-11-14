@@ -61,7 +61,7 @@ export async function testWebhook(webhookUrl: string): Promise<any> {
 export async function sendFilesToWebhook(
   files: File | File[],
   webhookUrl: string,
-  options?: { questionCount?: number; difficulty?: string; questionType?: string; onChunk?: (chunk: string) => void }
+  options?: { questionCount?: number; difficulty?: string; questionType?: string }
 ): Promise<WebhookResponse> {
   console.log('[WebhookService] Sending file(s) to webhook:', webhookUrl);
   
@@ -100,36 +100,8 @@ export async function sendFilesToWebhook(
     console.log('[WebhookService] Response status:', response.status);
     console.log('[WebhookService] Response headers:', Object.fromEntries(response.headers.entries()));
 
-    // Attempt to read streaming body if available (best-effort)
-    let responseText = '';
-    try {
-      const reader = (response as any).body?.getReader?.();
-      if (reader) {
-        console.log('[WebhookService] Response is streaming; reading chunks...');
-        const decoder = new TextDecoder();
-        let done = false;
-        while (!done) {
-          const { value, done: d } = await reader.read();
-          done = d;
-          if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            responseText += chunk;
-            if (options?.onChunk) {
-              try { options.onChunk(chunk); } catch (e) { console.warn('onChunk handler failed', e); }
-            }
-            console.log('[WebhookService] Received chunk length:', chunk.length);
-          }
-        }
-        // finalize any remaining
-        responseText += decoder.decode();
-      } else {
-        // Not streaming; fall back to text()
-        responseText = await response.text();
-      }
-    } catch (streamErr) {
-      console.warn('[WebhookService] Error reading streaming response, falling back to text():', streamErr);
-      try { responseText = await response.text(); } catch (e) { responseText = ''; }
-    }
+    // Read response text
+    const responseText = await response.text();
     console.log('[WebhookService] Raw response text length:', responseText.length);
 
     // ✅ SUCCESS: If we got status 200, the file(s) reached n8n!
@@ -174,20 +146,8 @@ export async function sendFilesToWebhook(
       data = JSON.parse(responseText);
       console.log('[WebhookService] Parsed JSON response:', data);
     } catch (e) {
-      // Some streaming responses may send multiple JSON chunks; try to salvage by extracting last JSON object
-      try {
-        const lastBrace = responseText.lastIndexOf('{');
-        if (lastBrace !== -1) {
-          const possible = responseText.slice(lastBrace);
-          data = JSON.parse(possible);
-          console.log('[WebhookService] Parsed JSON from trailing chunk:', data);
-        } else {
-          throw e;
-        }
-      } catch (e2) {
-        console.error('[WebhookService] Failed to parse JSON response:', responseText);
-        throw new Error(`Webhook returned invalid JSON. Raw response (truncated): ${responseText.substring(0, 200)}`);
-      }
+      console.error('[WebhookService] Failed to parse JSON response:', responseText);
+      throw new Error(`Webhook returned invalid JSON. Raw response (truncated): ${responseText.substring(0, 200)}`);
     }
 
     // Handle n8n array response format: [{ output: { questions: [...] } }]

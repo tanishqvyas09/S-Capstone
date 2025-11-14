@@ -27,8 +27,6 @@ const TeacherDashboard = () => {
   const [fetching, setFetching] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<GeneratedQuiz | null>(null);
-  const [showGenerationStreaming, setShowGenerationStreaming] = useState(false);
-  const [streamLog, setStreamLog] = useState<string[]>([]);
   const generationTimerRef = useRef<number | null>(null);
   const [questionCount, setQuestionCount] = useState<number>(5);
   const [difficulty, setDifficulty] = useState<string>('medium');
@@ -70,10 +68,6 @@ const TeacherDashboard = () => {
     try {
       setGeneratingQuiz(true);
       try { showToast('Generating quiz — this may take a moment...', 'info', 4000); } catch {};
-      // start a delayed streaming indicator if generation takes longer than 800ms
-      generationTimerRef.current = window.setTimeout(() => {
-        setShowGenerationStreaming(true);
-      }, 800);
       console.log('[TeacherDashboard] Uploading files:', files.map(f => f.name));
 
       // Get webhook URL
@@ -84,20 +78,11 @@ const TeacherDashboard = () => {
         // Map our UI selection to the webhook expected type names (n8n uses these strings)
         const webhookQuestionType = questionType === 'mcq' ? 'mcq' : questionType === 'tf' ? 'true_false' : 'fill_in_blank';
 
-        // clear previous stream log
-        setStreamLog([]);
-        const webhookResponse = await sendFilesToWebhook(files, webhookUrl, { questionCount, difficulty, questionType: webhookQuestionType, onChunk: (chunk: string) => {
-          // Append chunk to log, cap at 80 entries to avoid memory bloat
-          setStreamLog(prev => {
-            const next = [...prev, chunk.trim()];
-            if (next.length > 80) return next.slice(next.length - 80);
-            return next;
-          });
-        } });
+        const webhookResponse = await sendFilesToWebhook(files, webhookUrl, { questionCount, difficulty, questionType: webhookQuestionType });
 
         if (webhookResponse.success && webhookResponse.questions) {
           // Normalize incoming questions: ensure type/options exist and strip options for non-mcq types
-          const normalizedQuestions = (webhookResponse.questions || []).map((q: any) => {
+          const normalizedQuestions: Question[] = (webhookResponse.questions || []).map((q: any): Question => {
             // Determine returned type (normalize variants), fall back to requested type
             const returned = (q.type || '').toString().toLowerCase();
             let type: 'mcq' | 'tf' | 'fill' = 'mcq';
@@ -121,7 +106,7 @@ const TeacherDashboard = () => {
                 options: ['True', 'False'],
                 answer: answer || '',
                 explanation: q.explanation || '',
-                type: 'tf'
+                type: 'tf' as const
               };
             }
 
@@ -135,7 +120,7 @@ const TeacherDashboard = () => {
                 options: optionsArr,
                 answer: q.answer || '',
                 explanation: q.explanation || '',
-                type: 'mcq'
+                type: 'mcq' as const
               };
             }
 
@@ -145,7 +130,7 @@ const TeacherDashboard = () => {
               options: [],
               answer: q.answer || '',
               explanation: q.explanation || '',
-              type: 'fill'
+              type: 'fill' as const
             };
           });
 
@@ -173,12 +158,11 @@ const TeacherDashboard = () => {
       try { showToast('Error generating quiz: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error', 6000); } catch {};
     } finally {
       setGeneratingQuiz(false);
-      // clear streaming indicator and timer
+      // clear timer
       if (generationTimerRef.current) {
         clearTimeout(generationTimerRef.current);
         generationTimerRef.current = null;
       }
-      setShowGenerationStreaming(false);
     }
   };
 
@@ -342,29 +326,52 @@ const TeacherDashboard = () => {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto' }}>
-      <h1>EngageAI — 👨‍🏫 Teacher Dashboard</h1>
-      <p>Welcome, <strong>{user.email}</strong> ({user.role})</p>
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%)',
+      padding: '2rem', 
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <h1 style={{ color: '#FFFFFF', fontSize: '2.5rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
+        EngageAI — 👨‍🏫 Teacher Dashboard
+      </h1>
+      <p style={{ color: '#9CA3AF', fontSize: '1.1rem', marginBottom: '2rem' }}>
+        Welcome, <strong style={{ color: '#14B8A6' }}>{user.email}</strong> ({user.role})
+      </p>
 
-      <div style={{ marginBottom: '2rem' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <button
           onClick={fetchQuizzes}
           disabled={fetching}
           style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            padding: '0.5rem 1rem',
+            backgroundColor: '#14B8A6',
+            color: '#FFFFFF',
+            padding: '0.75rem 1.5rem',
             border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginRight: '1rem',
-            opacity: fetching ? 0.6 : 1
+            borderRadius: '8px',
+            cursor: fetching ? 'not-allowed' : 'pointer',
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            opacity: fetching ? 0.6 : 1,
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px rgba(20, 184, 166, 0.2)'
           }}
         >
           {fetching ? '⏳ Refreshing...' : '🔄 Refresh Quizzes'}
         </button>
-        <Link to="/teacher/auth">
-          <button style={{ backgroundColor: '#6c757d', color: 'white', padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <Link to="/teacher/auth" style={{ textDecoration: 'none' }}>
+          <button style={{ 
+            backgroundColor: 'rgba(75, 85, 99, 0.8)',
+            color: '#E5E7EB',
+            padding: '0.75rem 1.5rem',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            transition: 'all 0.2s ease'
+          }}>
             🚪 Logout
           </button>
         </Link>
@@ -372,51 +379,79 @@ const TeacherDashboard = () => {
 
       {/* Generation Options (hidden when editing or reviewing generated quiz) */}
       {!generatedQuiz && !editingQuiz && (
-        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Number of Questions</label>
-          <input type="number" min={1} max={50} value={questionCount} onChange={e => setQuestionCount(Number(e.target.value) || 1)} style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #ddd', width: 140 }} />
+        <div style={{ 
+          marginBottom: '2rem', 
+          background: 'rgba(31, 41, 55, 0.5)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          display: 'flex', 
+          gap: '1.5rem', 
+          alignItems: 'flex-end', 
+          flexWrap: 'wrap' 
+        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 160 }}>
+          <label style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#E5E7EB', fontSize: '0.9rem' }}>Number of Questions</label>
+          <input 
+            type="number" 
+            min={1} 
+            max={50} 
+            value={questionCount} 
+            onChange={e => setQuestionCount(Number(e.target.value) || 1)} 
+            style={{ 
+              padding: '0.75rem', 
+              borderRadius: 8, 
+              border: '1px solid rgba(255, 255, 255, 0.1)', 
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              color: '#FFFFFF',
+              fontSize: '0.95rem',
+              outline: 'none'
+            }} 
+          />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Difficulty</label>
-          <select value={difficulty} onChange={e => setDifficulty(e.target.value)} style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #ddd' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 140 }}>
+          <label style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#E5E7EB', fontSize: '0.9rem' }}>Difficulty</label>
+          <select 
+            value={difficulty} 
+            onChange={e => setDifficulty(e.target.value)} 
+            style={{ 
+              padding: '0.75rem', 
+              borderRadius: 8, 
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              color: '#FFFFFF',
+              fontSize: '0.95rem',
+              outline: 'none',
+              cursor: 'pointer'
+            }}>
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
           </select>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Question Type</label>
-          <select value={questionType} onChange={e => setQuestionType(e.target.value)} style={{ padding: '0.5rem', borderRadius: 8, border: '1px solid #ddd' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 140 }}>
+          <label style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#E5E7EB', fontSize: '0.9rem' }}>Question Type</label>
+          <select 
+            value={questionType} 
+            onChange={e => setQuestionType(e.target.value)} 
+            style={{ 
+              padding: '0.75rem', 
+              borderRadius: 8, 
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              color: '#FFFFFF',
+              fontSize: '0.95rem',
+              outline: 'none',
+              cursor: 'pointer'
+            }}>
             <option value="mcq">MCQ</option>
             <option value="tf">True / False</option>
             <option value="fill">Fill Ups</option>
           </select>
         </div>
-        </div>
-      )}
-
-      {/* Streaming indicator shown only when generation is taking time */}
-      {generatingQuiz && showGenerationStreaming && (
-        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div className="streaming-spinner" aria-hidden />
-          <div style={{ color: '#64748b', fontWeight: 600 }}>Generating quiz — this may take a moment...</div>
-        </div>
-      )}
-
-      {/* Live progress log from webhook streaming chunks */}
-      {streamLog.length > 0 && (
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ fontWeight: 700, marginBottom: 6, color: '#334155' }}>Generation progress</div>
-          <div style={{ background: '#0f172a', color: '#e6eef8', padding: '0.75rem', borderRadius: 8, maxHeight: 240, overflow: 'auto', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-            {streamLog.map((chunk, idx) => (
-              <div key={idx} style={{ marginBottom: 6, whiteSpace: 'pre-wrap' }}>
-                {chunk}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -436,9 +471,19 @@ const TeacherDashboard = () => {
 
       {/* Saved Quizzes */}
       <div style={{ marginTop: '3rem' }}>
-        <h2>📚 Your Quizzes ({quizzes.length})</h2>
+        <h2 style={{ color: '#FFFFFF', fontSize: '1.75rem', fontWeight: 700, marginBottom: '1.5rem' }}>
+          📚 Your Quizzes ({quizzes.length})
+        </h2>
         {quizzes.length === 0 ? (
-          <p style={{ color: '#666', fontSize: '1.1rem' }}>
+          <p style={{ 
+            color: '#9CA3AF', 
+            fontSize: '1.1rem',
+            background: 'rgba(31, 41, 55, 0.5)',
+            padding: '2rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            textAlign: 'center'
+          }}>
             No quizzes yet. Upload a file above to create your first quiz! 📁
           </p>
         ) : (
@@ -447,27 +492,31 @@ const TeacherDashboard = () => {
               <div
                 key={q.id}
                 style={{
-                  border: '1px solid #ddd',
+                  background: 'rgba(31, 41, 55, 0.5)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderLeft: '3px solid #14B8A6',
                   padding: '1.5rem',
-                  borderRadius: '8px',
-                  backgroundColor: '#f9f9f9',
+                  borderRadius: '12px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  opacity: deletingQuizId === q.id ? 0.5 : 1
+                  opacity: deletingQuizId === q.id ? 0.5 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
                 }}
               >
                 <div>
-                  <h3 style={{ marginTop: 0, color: '#007bff' }}>{q.title}</h3>
+                  <h3 style={{ marginTop: 0, color: '#14B8A6', fontSize: '1.25rem', fontWeight: 700 }}>{q.title}</h3>
                   {q.description && (
-                    <p style={{ fontSize: '0.9rem', color: '#555', marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#9CA3AF', marginBottom: '0.75rem', lineHeight: 1.5 }}>
                       {q.description}
                     </p>
                   )}
-                  <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#E5E7EB', marginBottom: '0.5rem' }}>
                     📋 Questions: {q.questions?.length || 0}
                   </p>
-                  <p style={{ fontSize: '0.85rem', color: '#999' }}>
+                  <p style={{ fontSize: '0.85rem', color: '#6B7280' }}>
                     Created: {new Date(q.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -475,15 +524,17 @@ const TeacherDashboard = () => {
                   <button
                     onClick={() => handleShareQuiz(q)}
                     style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      padding: '0.6rem 1.2rem',
+                      backgroundColor: '#14B8A6',
+                      color: '#FFFFFF',
+                      padding: '0.75rem 1.2rem',
                       border: 'none',
-                      borderRadius: '4px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       width: '100%',
                       fontSize: '0.95rem',
-                      fontWeight: 'bold'
+                      fontWeight: 600,
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 8px rgba(20, 184, 166, 0.2)'
                     }}
                   >
                     🔗 Share Quiz
@@ -492,16 +543,18 @@ const TeacherDashboard = () => {
                     onClick={() => handleEditQuiz(q)}
                     disabled={deletingQuizId === q.id || !!editingQuiz || !!generatedQuiz}
                     style={{
-                      backgroundColor: '#ffc107',
-                      color: '#000',
-                      padding: '0.6rem 1.2rem',
+                      backgroundColor: deletingQuizId === q.id || !!editingQuiz || !!generatedQuiz ? 'rgba(100, 100, 100, 0.3)' : '#F59E0B',
+                      color: '#FFFFFF',
+                      padding: '0.75rem 1.2rem',
                       border: 'none',
-                      borderRadius: '4px',
+                      borderRadius: '8px',
                       cursor: deletingQuizId === q.id || !!editingQuiz || !!generatedQuiz ? 'not-allowed' : 'pointer',
                       width: '100%',
                       fontSize: '0.95rem',
-                      fontWeight: 'bold',
-                      opacity: deletingQuizId === q.id || !!editingQuiz || !!generatedQuiz ? 0.6 : 1
+                      fontWeight: 600,
+                      opacity: deletingQuizId === q.id || !!editingQuiz || !!generatedQuiz ? 0.6 : 1,
+                      transition: 'all 0.2s ease',
+                      boxShadow: deletingQuizId === q.id || !!editingQuiz || !!generatedQuiz ? 'none' : '0 2px 8px rgba(245, 158, 11, 0.2)'
                     }}
                   >
                     ✏️ Edit Quiz
@@ -509,14 +562,16 @@ const TeacherDashboard = () => {
                   <Link to={`/teacher/quizzes/${q.id}`} style={{ textDecoration: 'none' }}>
                     <button
                       style={{
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        padding: '0.6rem 1.2rem',
-                        border: 'none',
-                        borderRadius: '4px',
+                        backgroundColor: 'rgba(100, 116, 139, 0.8)',
+                        color: '#E5E7EB',
+                        padding: '0.75rem 1.2rem',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         width: '100%',
-                        fontSize: '0.95rem'
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       📊 View Results
@@ -526,15 +581,17 @@ const TeacherDashboard = () => {
                     onClick={() => handleDeleteQuiz(q.id)}
                     disabled={deletingQuizId === q.id}
                     style={{
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      padding: '0.6rem 1.2rem',
-                      border: 'none',
-                      borderRadius: '4px',
+                      backgroundColor: deletingQuizId === q.id ? 'rgba(100, 100, 100, 0.3)' : 'rgba(239, 68, 68, 0.8)',
+                      color: '#FFFFFF',
+                      padding: '0.75rem 1.2rem',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '8px',
                       cursor: deletingQuizId === q.id ? 'not-allowed' : 'pointer',
                       width: '100%',
                       fontSize: '0.95rem',
-                      opacity: deletingQuizId === q.id ? 0.6 : 1
+                      fontWeight: 600,
+                      opacity: deletingQuizId === q.id ? 0.6 : 1,
+                      transition: 'all 0.2s ease'
                     }}
                   >
                     {deletingQuizId === q.id ? '⏳ Deleting...' : '🗑️ Delete Quiz'}
@@ -554,21 +611,25 @@ const TeacherDashboard = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: 'white',
+            background: 'rgba(31, 41, 55, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             padding: '2rem',
-            borderRadius: '12px',
+            borderRadius: '16px',
             maxWidth: '500px',
             width: '90%',
             maxHeight: '90vh',
             overflow: 'auto',
-            position: 'relative'
+            position: 'relative',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
           }}>
             <button
               onClick={handleCloseShareModal}
@@ -580,24 +641,25 @@ const TeacherDashboard = () => {
                 border: 'none',
                 fontSize: '1.5rem',
                 cursor: 'pointer',
-                color: '#666'
+                color: '#9CA3AF',
+                transition: 'color 0.2s'
               }}
             >
               ×
             </button>
 
-            <h2 style={{ marginTop: 0, color: '#28a745' }}>🔗 Share Quiz</h2>
-            <h3 style={{ marginBottom: '1.5rem', color: '#333' }}>{shareQuiz.title}</h3>
+            <h2 style={{ marginTop: 0, color: '#14B8A6', fontSize: '1.75rem', fontWeight: 700 }}>🔗 Share Quiz</h2>
+            <h3 style={{ marginBottom: '1.5rem', color: '#E5E7EB', fontWeight: 600 }}>{shareQuiz.title}</h3>
 
             {/* Access Code */}
             <div style={{
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'rgba(20, 184, 166, 0.1)',
               padding: '1.5rem',
-              borderRadius: '8px',
+              borderRadius: '12px',
               marginBottom: '1.5rem',
-              border: '2px solid #28a745'
+              border: '2px solid rgba(20, 184, 166, 0.3)'
             }}>
-              <h4 style={{ marginTop: 0, marginBottom: '1rem' }}>📱 6-Digit Access Code</h4>
+              <h4 style={{ marginTop: 0, marginBottom: '1rem', color: '#E5E7EB', fontWeight: 600 }}>📱 6-Digit Access Code</h4>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -607,7 +669,7 @@ const TeacherDashboard = () => {
                 <div style={{
                   fontSize: '2rem',
                   fontWeight: 'bold',
-                  color: '#28a745',
+                  color: '#14B8A6',
                   letterSpacing: '0.5rem',
                   fontFamily: 'monospace'
                 }}>
@@ -616,44 +678,48 @@ const TeacherDashboard = () => {
                 <button
                   onClick={() => copyToClipboard(shareQuiz.access_code || '')}
                   style={{
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    padding: '0.5rem 1rem',
+                    backgroundColor: '#14B8A6',
+                    color: '#FFFFFF',
+                    padding: '0.6rem 1.2rem',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(20, 184, 166, 0.3)'
                   }}
                 >
                   📋 Copy
                 </button>
               </div>
-              <p style={{ marginTop: '0.75rem', marginBottom: 0, fontSize: '0.9rem', color: '#666' }}>
-                Students can enter this code at: <strong>{window.location.origin}/quiz-access</strong>
+              <p style={{ marginTop: '0.75rem', marginBottom: 0, fontSize: '0.9rem', color: '#9CA3AF' }}>
+                Students can enter this code at: <strong style={{ color: '#14B8A6' }}>{window.location.origin}/quiz-access</strong>
               </p>
             </div>
 
             {/* QR Code */}
             {qrCodeUrl && (
               <div style={{
-                backgroundColor: '#f8f9fa',
+                backgroundColor: 'rgba(10, 10, 10, 0.4)',
                 padding: '1.5rem',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 textAlign: 'center',
-                border: '2px solid #007bff'
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
-                <h4 style={{ marginTop: 0, marginBottom: '1rem' }}>📱 QR Code</h4>
+                <h4 style={{ marginTop: 0, marginBottom: '1rem', color: '#E5E7EB', fontWeight: 600 }}>📱 QR Code</h4>
                 <img 
                   src={qrCodeUrl} 
                   alt="Quiz QR Code" 
                   style={{ 
                     maxWidth: '100%', 
                     height: 'auto',
-                    border: '4px solid white',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    border: '4px solid #14B8A6',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(20, 184, 166, 0.3)'
                   }} 
                 />
-                <p style={{ marginTop: '1rem', marginBottom: 0, fontSize: '0.9rem', color: '#666' }}>
+                <p style={{ marginTop: '1rem', marginBottom: 0, fontSize: '0.9rem', color: '#9CA3AF' }}>
                   Students can scan this QR code to access the quiz directly
                 </p>
                 <button
@@ -665,13 +731,16 @@ const TeacherDashboard = () => {
                   }}
                   style={{
                     marginTop: '1rem',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    padding: '0.5rem 1rem',
+                    backgroundColor: '#F59E0B',
+                    color: '#FFFFFF',
+                    padding: '0.6rem 1.2rem',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
                   }}
                 >
                   💾 Download QR Code
@@ -685,13 +754,14 @@ const TeacherDashboard = () => {
                 marginTop: '1.5rem',
                 width: '100%',
                 padding: '0.75rem',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
+                backgroundColor: 'rgba(75, 85, 99, 0.8)',
+                color: '#E5E7EB',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '1rem',
-                fontWeight: 'bold'
+                fontWeight: 600,
+                transition: 'all 0.2s'
               }}
             >
               Close
@@ -699,6 +769,7 @@ const TeacherDashboard = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
